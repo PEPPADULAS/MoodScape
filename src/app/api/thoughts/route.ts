@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { title, content, mood, weather, tags, isPrivate } = await req.json()
+    const { title, content, mood, weather, tags, isPrivate, font, language } = await req.json()
 
     if (!content) {
       return NextResponse.json(
@@ -108,17 +108,26 @@ export async function POST(req: NextRequest) {
       season = 'rainy'
     }
 
+    // Load user defaults for font and language if not provided
+    const settings = await prisma.userSettings.findUnique({ where: { userId: user.id } }) as any
+    const resolvedFont = (font ?? undefined) || (settings?.defaultFont ?? undefined)
+    const resolvedLanguage = (language ?? undefined) || (settings?.defaultLanguage ?? undefined)
+
+    const data: any = {
+      title,
+      content,
+      mood,
+      weather,
+      season,
+      tags: tags ? JSON.stringify(tags) : null,
+      isPrivate: isPrivate || false,
+      userId: user.id,
+      font: resolvedFont,
+      language: resolvedLanguage
+    }
+
     const thought = await prisma.thought.create({
-      data: {
-        title,
-        content,
-        mood,
-        weather,
-        season,
-        tags: tags ? JSON.stringify(tags) : null,
-        isPrivate: isPrivate || false,
-        userId: user.id
-      },
+      data,
       include: {
         user: {
           select: {

@@ -7,6 +7,8 @@ import { useTheme } from '@/contexts/theme-context'
 import { getCurrentSeason } from '@/lib/utils'
 import { SmartTagSuggestions } from './smart-tag-suggestions'
 import { ThemedInput, ThemedTextarea, ThemedSelect } from '@/components/ui/themed-input'
+import { getFontStack } from '@/lib/utils'
+import { getFontClass } from '@/lib/fonts'
 
 interface Thought {
   id: string
@@ -37,6 +39,22 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
   const [tagInput, setTagInput] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [font, setFont] = useState<string>('')
+  const [language, setLanguage] = useState<string>('')
+
+  useEffect(() => {
+    const loadDefaults = async () => {
+      try {
+        const res = await fetch('/api/user/settings')
+        if (res.ok) {
+          const settings = await res.json()
+          if (settings?.defaultFont) setFont(settings.defaultFont)
+          if (settings?.defaultLanguage) setLanguage(settings.defaultLanguage)
+        }
+      } catch {}
+    }
+    if (isOpen) loadDefaults()
+  }, [isOpen])
 
   const moods = [
     { value: 'happy', label: '😊 Happy' },
@@ -67,6 +85,8 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
     setTags([])
     setTagInput('')
     setIsPrivate(false)
+    setFont('')
+    setLanguage('')
   }
 
   const handleClose = () => {
@@ -113,6 +133,8 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
           weather: weather || null,
           tags: tags.length > 0 ? tags : null,
           isPrivate,
+          font: font || null,
+          language: language || null,
         }),
       })
 
@@ -176,6 +198,38 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
                 />
               </div>
 
+              {/* Font and Language */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className={`block text-sm font-medium ${theme.text} mb-2`}>
+                    Font
+                  </label>
+                  <ThemedSelect value={font} onChange={(e) => setFont(e.target.value)}>
+                    <option value="">System Default</option>
+                    <option value="inter">Inter (Sans)</option>
+                    <option value="poppins">Poppins (Sans)</option>
+                    <option value="merriweather">Merriweather (Serif)</option>
+                    <option value="playfair">Playfair Display (Serif)</option>
+                    <option value="dancing-script">Dancing Script (Handwritten)</option>
+                    <option value="pacifico">Pacifico (Handwritten)</option>
+                    <option value="caveat">Caveat (Handwritten)</option>
+                    <option value="special-elite">Special Elite (Typewriter)</option>
+                    <option value="roboto-mono">Roboto Mono (Mono)</option>
+                  </ThemedSelect>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${theme.text} mb-2`}>
+                    Language
+                  </label>
+                  <ThemedSelect value={language} onChange={(e) => setLanguage(e.target.value)}>
+                    <option value="">Follow Default</option>
+                    <option value="en">English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="bn">Bengali</option>
+                  </ThemedSelect>
+                </div>
+              </div>
+
               {/* Content */}
               <div className="mb-4">
                 <label className={`block text-sm font-medium ${theme.text} mb-2`}>
@@ -187,6 +241,8 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
                   placeholder="Share your thoughts, experiences, or feelings..."
                   rows={5}
                   required
+                  style={{ fontFamily: font ? getFontStack(font) : undefined }}
+                  lang={language || undefined}
                 />
               </div>
 

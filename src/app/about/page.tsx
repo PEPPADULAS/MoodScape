@@ -18,8 +18,19 @@ import {
   BookOpen,
   Headphones,
   Camera,
-  Zap
+  Zap,
+  Bell,
+  Calendar,
+  Clock,
+  Type,
+  Globe,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+  Award
 } from 'lucide-react'
+import { SmoothNavigation } from '@/components/navigation/smooth-navigation'
+import { useSession, signOut } from 'next-auth/react'
 import { PageTransition, TextReveal, EnhancedButton } from '@/components/animations/micro-interactions'
 import { ParallaxContainer, ScrollTriggeredAnimation, StaggeredAnimation } from '@/components/animations/parallax-container'
 import { DynamicBackground, SeasonalGradientBackground, ConstellationEffect } from '@/components/backgrounds/dynamic-background'
@@ -27,6 +38,7 @@ import { DynamicBackground, SeasonalGradientBackground, ConstellationEffect } fr
 export default function AboutPage() {
   const { theme } = useTheme()
   const router = useRouter()
+  const { data: session } = useSession()
 
   const features = [
     {
@@ -36,22 +48,58 @@ export default function AboutPage() {
       color: "from-pink-500 to-red-500"
     },
     {
-      icon: Music,
-      title: "Immersive Music System",
-      description: "Create playlists that match your mood and season, with local file support and smart recommendations.",
-      color: "from-purple-500 to-blue-500"
+      icon: Type,
+      title: "Font & Language Customization",
+      description: "Personalize your writing experience with diverse fonts and multiple language support for global accessibility.",
+      color: "from-indigo-500 to-purple-500"
     },
     {
-      icon: Palette,
-      title: "Dynamic Themes",
-      description: "Beautiful seasonal themes that change based on time, weather, and your personal preferences.",
-      color: "from-green-500 to-teal-500"
+      icon: Calendar,
+      title: "Smart Calendar & Clock System",
+      description: "Functional calendar with seasonal themes, real-time clock, and event management with notifications.",
+      color: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: Bell,
+      title: "Reminder & Notification System",
+      description: "Set future date reminders with notes and receive system notifications when events arrive.",
+      color: "from-orange-500 to-red-500"
     },
     {
       icon: Brain,
-      title: "Smart Analytics",
+      title: "Smart Tag Weaving",
+      description: "Auto-suggest cross-links between entries and visualize narrative threads across months.",
+      color: "from-green-500 to-emerald-500"
+    },
+    {
+      icon: Layers,
+      title: "Seasonal Visual Packs",
+      description: "Unlockable visual packs with animated stickers, gradients, and font pairings tied to achievements.",
+      color: "from-purple-500 to-pink-500"
+    },
+    {
+      icon: Palette,
+      title: "Advanced Theme Studio",
+      description: "Create custom gradients, weather-based themes, and persistent theme consistency across navigation.",
+      color: "from-teal-500 to-green-500"
+    },
+    {
+      icon: ChevronRight,
+      title: "Smooth Navigation System",
+      description: "Arrow-controlled navigation with smooth transitions and theme consistency across all pages.",
+      color: "from-cyan-500 to-blue-500"
+    },
+    {
+      icon: Music,
+      title: "Immersive Music System",
+      description: "Create playlists that match your mood and season, with local file support and smart recommendations.",
+      color: "from-violet-500 to-purple-500"
+    },
+    {
+      icon: Brain,
+      title: "Smart Analytics Dashboard",
       description: "Gain insights into your thoughts and moods with interactive charts and personal growth tracking.",
-      color: "from-orange-500 to-yellow-500"
+      color: "from-yellow-500 to-orange-500"
     },
     {
       icon: Users,
@@ -63,7 +111,7 @@ export default function AboutPage() {
       icon: Shield,
       title: "Privacy & Security",
       description: "Your thoughts are private by default with secure authentication and optional sharing controls.",
-      color: "from-indigo-500 to-purple-500"
+      color: "from-gray-500 to-slate-500"
     }
   ]
 
@@ -73,7 +121,11 @@ export default function AboutPage() {
     { name: "Framer Motion", description: "Smooth animations and micro-interactions" },
     { name: "Tailwind CSS", description: "Utility-first styling with custom themes" },
     { name: "NextAuth.js", description: "Secure authentication system" },
-    { name: "Web Audio API", description: "Advanced music playback and visualization" }
+    { name: "Prisma ORM", description: "Type-safe database operations" },
+    { name: "Web Audio API", description: "Advanced music playback and visualization" },
+    { name: "localStorage API", description: "Persistent theme and user preferences" },
+    { name: "Geolocation API", description: "Weather-based theme suggestions" },
+    { name: "Notifications API", description: "System-level reminder notifications" }
   ]
 
   return (
@@ -98,18 +150,14 @@ export default function AboutPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center space-x-4">
-                <EnhancedButton
-                  onClick={() => router.back()}
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center space-x-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back</span>
-                </EnhancedButton>
                 <span className="text-3xl">{theme.emoji}</span>
                 <h1 className={`text-xl font-bold ${theme.text}`}>About MoodScape</h1>
               </div>
+              {session && (
+                <div className="flex items-center space-x-4">
+                  <SmoothNavigation onSignOut={() => signOut()} />
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -139,8 +187,9 @@ export default function AboutPage() {
                 className={`text-xl ${theme.accent} max-w-3xl mx-auto leading-relaxed`}
               >
                 A revolutionary mood-based journaling platform that combines the art of self-reflection 
-                with immersive music experiences and beautiful seasonal themes. Capture your thoughts, 
-                track your emotions, and create soundscapes that match your inner world.
+                with immersive music experiences, smart calendar systems, and beautiful seasonal themes. 
+                Capture your thoughts, set reminders, customize your writing experience, and create 
+                soundscapes that match your inner world with persistent theme consistency.
               </motion.p>
             </div>
           </ScrollTriggeredAnimation>
@@ -154,7 +203,9 @@ export default function AboutPage() {
                 <p className={`${theme.accent} text-lg leading-relaxed`}>
                   We believe that everyone deserves a beautiful, private space to explore their thoughts and emotions. 
                   MoodScape combines cutting-edge technology with thoughtful design to create an experience that's 
-                  both functional and inspiring—helping you understand yourself better through the seasons of life.
+                  both functional and inspiring—helping you understand yourself better through the seasons of life. 
+                  With smart reminders, customizable themes, and seamless navigation, your journaling experience 
+                  adapts to your unique style and needs.
                 </p>
               </div>
             </div>

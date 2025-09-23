@@ -14,6 +14,9 @@ interface ThemeContextType {
   themeMode: ThemeMode
   toggleMode: () => void
   setThemeMode: (mode: ThemeMode) => void
+  customGradient: string | null
+  setCustomGradient: (gradient: string | null) => void
+  clearCustomGradient: () => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -23,6 +26,34 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<ThemeName>('spring')
   const [autoTheme, setAutoTheme] = useState(true)
   const [themeMode, setThemeMode] = useState<ThemeMode>('light')
+  const [customGradient, setCustomGradient] = useState<string | null>(null)
+
+  // Load custom gradient from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedGradient = localStorage.getItem('moodscape-custom-gradient')
+      if (savedGradient) {
+        setCustomGradient(savedGradient)
+        // Apply immediately to DOM
+        const root = document.documentElement
+        root.style.setProperty('background', savedGradient)
+        document.body.style.background = savedGradient
+      }
+    }
+  }, [])
+
+  // Ensure custom gradient is always applied when it exists
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedGradient = localStorage.getItem('moodscape-custom-gradient')
+      if (savedGradient && !customGradient) {
+        setCustomGradient(savedGradient)
+        const root = document.documentElement
+        root.style.setProperty('background', savedGradient)
+        document.body.style.background = savedGradient
+      }
+    }
+  }, [customGradient])
 
   // Get current theme mode from the theme
   const currentThemeMode = themes[currentTheme].mode
@@ -37,21 +68,45 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setCurrentTheme(season as ThemeName)
       setThemeMode('light')
     }
-  }, [session])
+  }, [session?.user?.email]) // Only depend on user email, not the entire session object
+
 
   useEffect(() => {
     // Auto-update theme based on season if enabled
-    if (autoTheme) {
-      const season = getCurrentSeason()
-      const newTheme = getThemeBySeasonAndMode(season, themeMode)
-      if (newTheme !== currentTheme) {
-        setCurrentTheme(newTheme)
-        if (session?.user) {
-          updateUserTheme(newTheme, true)
+    if (autoTheme && !customGradient) {
+      // Also check localStorage for custom gradient
+      const savedGradient = typeof window !== 'undefined' ? localStorage.getItem('moodscape-custom-gradient') : null
+      
+      if (!savedGradient) {
+        const season = getCurrentSeason()
+        const newTheme = getThemeBySeasonAndMode(season, themeMode)
+        if (newTheme !== currentTheme) {
+          setCurrentTheme(newTheme)
+          if (session?.user) {
+            updateUserTheme(newTheme, true)
+          }
         }
       }
     }
-  }, [autoTheme, themeMode, session])
+  }, [autoTheme, themeMode, session, customGradient])
+
+  // Apply custom gradient when it changes
+  useEffect(() => {
+    if (customGradient) {
+      const root = document.documentElement
+      root.style.setProperty('background', customGradient)
+      document.body.style.background = customGradient
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('moodscape-custom-gradient', customGradient)
+      }
+    } else {
+      // Clear from localStorage when gradient is removed
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('moodscape-custom-gradient')
+      }
+    }
+  }, [customGradient])
 
   const fetchUserTheme = async () => {
     try {
@@ -61,8 +116,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const userTheme = settings.currentTheme || getCurrentSeason()
         const userMode = settings.themeMode || 'light'
         
-        setCurrentTheme(userTheme)
-        setThemeMode(userMode)
+        // Check if there's a saved custom gradient in localStorage
+        const savedGradient = typeof window !== 'undefined' ? localStorage.getItem('moodscape-custom-gradient') : null
+        
+        // Only update theme if no custom gradient is active (either in state or localStorage)
+        if (!customGradient && !savedGradient) {
+          setCurrentTheme(userTheme)
+          setThemeMode(userMode)
+        }
         setAutoTheme(settings.autoTheme ?? true)
       }
     } catch (error) {
@@ -92,6 +153,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setCurrentTheme(theme)
     const newMode = themes[theme].mode
     setThemeMode(newMode)
+    // Clear custom gradient when switching to regular theme
+    if (customGradient) {
+      setCustomGradient(null)
+      const root = document.documentElement
+      root.style.removeProperty('background')
+      document.body.style.removeProperty('background')
+      // Clear from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('moodscape-custom-gradient')
+      }
+    }
     if (session?.user) {
       updateUserTheme(theme, undefined, newMode)
     }
@@ -140,6 +212,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const clearCustomGradient = () => {
+    setCustomGradient(null)
+    // Reset to default theme background
+    const root = document.documentElement
+    root.style.removeProperty('background')
+    document.body.style.removeProperty('background')
+    // Clear from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('moodscape-custom-gradient')
+    }
+  }
+
   return (
     <ThemeContext.Provider
       value={{
@@ -151,6 +235,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         themeMode: currentThemeMode,
         toggleMode,
         setThemeMode: handleSetThemeMode,
+        customGradient,
+        setCustomGradient,
+        clearCustomGradient,
       }}
     >
       {children}

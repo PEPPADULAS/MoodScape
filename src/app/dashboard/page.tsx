@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Plus, LogOut, Search, Filter, Music2, Info } from 'lucide-react'
+import { Plus, LogOut, Search, Filter, Music2, Info, Bell, Home, Calendar, Palette } from 'lucide-react'
+import { SmoothNavigation } from '@/components/navigation/smooth-navigation'
 import { useTheme } from '@/contexts/theme-context'
 import ThemeSelector from '@/components/theme-selector'
 import ThoughtCard from '@/components/thought-card'
@@ -22,6 +23,9 @@ import { QueueManager, useKeyboardShortcuts, KeyboardShortcutsHelp } from '@/com
 import { ThemedInput, ThemedSelect } from '@/components/ui/themed-input'
 import { MobileEnhancements } from '@/components/mobile/mobile-enhancements'
 import { AccessibilityControls } from '@/components/accessibility/accessibility-controls'
+import { ThemedCalendar } from '@/components/charts/themed-calendar'
+import { ThemedClock } from '@/components/charts/themed-clock'
+import { DashboardThemeSection } from '@/components/theme/dashboard-theme-section'
 
 interface Thought {
   id: string
@@ -124,8 +128,10 @@ export default function Dashboard() {
         {/* Scroll Progress Indicator */}
         <ScrollProgressIndicator />
         
-        {/* Enhanced Theme Controls */}
-        <EnhancedThemeControls />
+        {/* Clock Widget */}
+        <div className="fixed right-4 top-4 z-40">
+          <ThemedClock style="digital" />
+        </div>
         
         {/* Dynamic Background Layers */}
         <SeasonalGradientBackground />
@@ -151,27 +157,7 @@ export default function Dashboard() {
             
             <div className="flex items-center space-x-4">
               <ThemeSelector />
-              <button
-                onClick={() => router.push('/about')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${theme.text} hover:opacity-75 transition-opacity`}
-              >
-                <Info className="w-4 h-4" />
-                <span>About</span>
-              </button>
-              <button
-                onClick={() => router.push('/music')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${theme.text} hover:opacity-75 transition-opacity`}
-              >
-                <Music2 className="w-4 h-4" />
-                <span>Music</span>
-              </button>
-              <button
-                onClick={() => signOut()}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${theme.text} hover:opacity-75 transition-opacity`}
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
-              </button>
+              <SmoothNavigation onSignOut={() => signOut()} />
             </div>
           </div>
         </div>
@@ -179,34 +165,36 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <ScrollTriggeredAnimation animation="fadeInUp" className="mb-8 relative z-10">
-          <div className="mb-8">
-            <TextReveal 
-              className={`text-3xl font-bold ${theme.text} mb-2`}
-            >
-              {`Welcome back, ${session.user?.name || 'Friend'}!`}
-            </TextReveal>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.6 }}
-              className={theme.accent}
-            >
-              Capture your thoughts and experiences in this beautiful mood-based journal.
-            </motion.p>
+        {/* Calendar + Analytics Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-1 order-last lg:order-first">
+            <ThemedCalendar />
           </div>
-        </ScrollTriggeredAnimation>
+          <div className="lg:col-span-2">
+            {/* Analytics Dashboard */}
+            <ScrollTriggeredAnimation animation="fadeInUp" delay={0.2}>
+              <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-0">
+                <div className="lg:col-span-1">
+                  <AnalyticsDashboard />
+                </div>
+              </div>
+            </ScrollTriggeredAnimation>
+          </div>
+        </div>
 
-        {/* Analytics Dashboard */}
-        <ScrollTriggeredAnimation animation="fadeInUp" delay={0.2}>
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
-            <div className="lg:col-span-1">
-              <AnalyticsDashboard />
+        {/* Custom Theme Section */}
+        <ScrollTriggeredAnimation animation="fadeInUp" delay={0.4}>
+          <div className="mb-8" data-theme-studio>
+            <div className="relative">
+              <DashboardThemeSection />
+              {/* Theme Studio Button positioned near the theme section */}
+              <div className="absolute top-4 right-4">
+                <EnhancedThemeControls />
+              </div>
             </div>
           </div>
         </ScrollTriggeredAnimation>
-
+        
         {/* Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="flex-1">

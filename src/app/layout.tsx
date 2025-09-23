@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { allFontVariables } from '@/lib/fonts';
 import "./globals.css";
 import Providers from '@/components/providers';
 
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${allFontVariables} antialiased`}
         suppressHydrationWarning={true}
       >
         <Providers>

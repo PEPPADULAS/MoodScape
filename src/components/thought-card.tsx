@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, Edit, Trash2, Eye, EyeOff, Heart, Bookmark } from 'lucide-react'
 import { useTheme } from '@/contexts/theme-context'
 import { formatDate } from '@/lib/utils'
+import { getFontStack } from '@/lib/utils'
+import { getFontClass } from '@/lib/fonts'
 import { TouchFeedback, SwipeNavigation } from './mobile/gesture-wrapper'
 import { ResponsiveTypography } from './mobile/responsive-typography'
 import { ThemedInput, ThemedTextarea } from '@/components/ui/themed-input'
@@ -17,6 +19,8 @@ interface Thought {
   weather?: string
   season?: string
   tags?: string
+  font?: string
+  language?: string
   isPrivate: boolean
   createdAt: string
   updatedAt: string
@@ -47,6 +51,8 @@ export default function ThoughtCard({ thought, onDelete, onUpdate }: ThoughtCard
         body: JSON.stringify({
           title: editTitle || null,
           content: editContent,
+          font: thought.font ?? null,
+          language: thought.language ?? null,
         }),
       })
 
@@ -138,7 +144,10 @@ export default function ThoughtCard({ thought, onDelete, onUpdate }: ThoughtCard
           shadow-md group-hover:shadow-xl transition-all duration-300
           border border-transparent group-hover:border-opacity-20
           backdrop-blur-sm
+          ${getFontClass(thought.font) || ''}
         `}
+        lang={thought.language || undefined}
+        style={{ fontFamily: thought.font ? getFontStack(thought.font) : undefined }}
       >
         {/* Animated background glow */}
         <motion.div

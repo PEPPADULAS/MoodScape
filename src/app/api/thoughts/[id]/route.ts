@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { title, content, mood, weather, tags, isPrivate } = await req.json()
+    const { title, content, mood, weather, tags, isPrivate, font, language } = await req.json()
 
     const existingThought = await prisma.thought.findFirst({
       where: {
@@ -113,7 +113,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         ...(mood !== undefined && { mood }),
         ...(weather !== undefined && { weather }),
         ...(tags !== undefined && { tags: tags ? JSON.stringify(tags) : null }),
-        ...(isPrivate !== undefined && { isPrivate })
+        ...(isPrivate !== undefined && { isPrivate }),
+        ...(font !== undefined && { font }),
+        ...(language !== undefined && { language })
       },
       include: {
         user: {

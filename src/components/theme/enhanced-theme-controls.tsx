@@ -171,11 +171,11 @@ const weatherThemes: Record<string, WeatherTheme> = {
 };
 
 export function EnhancedThemeControls() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, setCustomGradient } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'time' | 'weather' | 'custom'>('time');
   const [autoThemeEnabled, setAutoThemeEnabled] = useState(false); // Start with false to prevent hydration issues
-  const [customGradients, setCustomGradients] = useState<CustomGradient[]>([]);
+  const [customGradients, setCustomGradients] = useState<any[]>([]);
   const [currentGradient, setCurrentGradient] = useState<CustomGradient | null>(null);
   const [gradientColors, setGradientColors] = useState(['#667eea', '#764ba2']);
   const [gradientDirection, setGradientDirection] = useState(135);
@@ -183,6 +183,8 @@ export function EnhancedThemeControls() {
   const [previewMode, setPreviewMode] = useState(false);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [weatherCondition, setWeatherCondition] = useState<'sunny' | 'cloudy' | 'rainy' | null>(null);
+  const [autoWeatherEnabled, setAutoWeatherEnabled] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -191,6 +193,21 @@ export function EnhancedThemeControls() {
     setIsClient(true);
     setAutoThemeEnabled(true);
   }, []);
+
+  // Load saved custom gradients from API
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/themes/custom')
+        if (res.ok) {
+          const items = await res.json()
+          const parsed: any = normalizeLoaded(items)
+          if (parsed.length) setCustomGradients(parsed)
+        }
+      } catch {}
+    }
+    load()
+  }, [])
 
   // Auto theme switching based on time
   useEffect(() => {
@@ -225,6 +242,51 @@ export function EnhancedThemeControls() {
     };
   }, [autoThemeEnabled, isClient]);
 
+  // Weather suggestion fetch
+  useEffect(() => {
+    const mapWeatherCode = (code: number): 'sunny' | 'cloudy' | 'rainy' => {
+      if (code === 0) return 'sunny'
+      if ([1,2,3,45,48].includes(code)) return 'cloudy'
+      if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return 'rainy'
+      return 'cloudy'
+    }
+    const fetchWeather = async (lat: number, lon: number) => {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+        const res = await fetch(url)
+        if (!res.ok) return
+        const data = await res.json()
+        setWeatherData(data)
+        const code = data?.current_weather?.weathercode
+        if (typeof code === 'number') setWeatherCondition(mapWeatherCode(code))
+      } catch {}
+    }
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => setWeatherCondition(null),
+        { timeout: 5000 }
+      )
+    }
+    // refresh weather every 15 minutes
+    const id = setInterval(() => {
+      if (typeof window !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+          () => {}
+        )
+      }
+    }, 15 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Auto-apply weather theme when enabled
+  useEffect(() => {
+    if (!autoWeatherEnabled || !weatherCondition) return
+    const colors = weatherThemes[weatherCondition].colors
+    applyTheme(colors)
+  }, [autoWeatherEnabled, weatherCondition])
+
   // Apply theme colors
   const applyTheme = (colors: TimeBasedTheme['colors']) => {
     const root = document.documentElement;
@@ -234,10 +296,14 @@ export function EnhancedThemeControls() {
     root.style.setProperty('--color-background', colors.background);
     root.style.setProperty('--color-surface', colors.surface);
     root.style.setProperty('--color-text', colors.text);
+    
+    // Also apply the background directly for immediate effect
+    root.style.setProperty('background', colors.background);
+    document.body.style.background = colors.background;
   };
 
   // Custom gradient creation
-  const createCustomGradient = () => {
+  const createCustomGradient = async () => {
     const newGradient: CustomGradient = {
       id: `custom_${Date.now()}`,
       name: `Custom Gradient ${customGradients.length + 1}`,
@@ -246,12 +312,33 @@ export function EnhancedThemeControls() {
       type: gradientType
     };
     
-    setCustomGradients(prev => [...prev, newGradient]);
-    setCurrentGradient(newGradient);
+    // persist to database first
+    try {
+      const response = await fetch('/api/themes/custom', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ name: newGradient.name, data: newGradient }) 
+      })
+      if (response.ok) {
+        const savedItem = await response.json()
+        // Update local state with the saved item (includes database ID)
+        const savedGradient = { id: savedItem.id, gradient: newGradient }
+        setCustomGradients(prev => [...prev, savedGradient])
+        setCurrentGradient(newGradient)
+        
+        // Trigger a custom event to notify dashboard component
+        window.dispatchEvent(new CustomEvent('customGradientSaved', { detail: savedGradient }))
+      }
+    } catch (error) {
+      console.error('Failed to save custom gradient:', error)
+    }
   };
 
   // Generate gradient CSS
-  const generateGradientCSS = (gradient: CustomGradient) => {
+  const generateGradientCSS = (gradient: CustomGradient | null | undefined) => {
+    if (!gradient || !Array.isArray(gradient.colors) || gradient.colors.length === 0) {
+      return 'linear-gradient(135deg, #667eea, #764ba2)'
+    }
     const colorStops = gradient.colors.join(', ');
     
     switch (gradient.type) {
@@ -265,6 +352,25 @@ export function EnhancedThemeControls() {
         return `linear-gradient(${gradient.direction}deg, ${colorStops})`;
     }
   };
+  
+  // Normalize server-loaded items to include id and ensure colors exist
+  const normalizeLoaded = (items: any[]) => {
+    return items.map((it: any) => {
+      try {
+        const g = JSON.parse(it.data)
+        if (!g || !Array.isArray(g.colors)) return null
+        return { id: it.id as string, gradient: g as CustomGradient }
+      } catch { return null }
+    }).filter(Boolean)
+  }
+
+  // Apply a custom gradient as site theme
+  const applyGradientTheme = (gradient: CustomGradient) => {
+    const gradientCss = generateGradientCSS(gradient)
+    
+    // Update theme context to persist across page navigation
+    setCustomGradient(gradientCss)
+  }
 
   // Add gradient color
   const addGradientColor = () => {
@@ -335,16 +441,17 @@ export function EnhancedThemeControls() {
     >
       <div className="relative">
         {/* Toggle Button */}
-        <motion.button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`w-12 h-12 backdrop-blur-md rounded-full border flex items-center justify-center transition-all duration-300 ${
-            theme.mode === 'light'
-              ? 'bg-white/90 border-gray-200 text-gray-700 hover:bg-white hover:shadow-lg'
-              : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-          }`}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+            <motion.button
+              onClick={() => setIsExpanded(!isExpanded)}
+              data-theme-studio-toggle
+              className={`w-12 h-12 backdrop-blur-md rounded-full border flex items-center justify-center transition-all duration-300 ${
+                theme.mode === 'light'
+                  ? 'bg-white/90 border-gray-200 text-gray-700 hover:bg-white hover:shadow-lg'
+                  : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
           <Palette className="w-6 h-6" />
         </motion.button>
 
@@ -356,7 +463,7 @@ export function EnhancedThemeControls() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -20 }}
               transition={{ duration: 0.2 }}
-              className={`absolute top-16 right-0 w-96 backdrop-blur-xl rounded-2xl border p-6 shadow-2xl ${
+              className={`absolute top-16 right-0 w-[92vw] max-w-[26rem] sm:w-96 backdrop-blur-xl rounded-2xl border p-6 shadow-2xl ${
                 theme.mode === 'light'
                   ? 'bg-white/95 border-gray-200 text-gray-900'
                   : 'bg-white/10 border-white/20 text-white'
@@ -427,6 +534,28 @@ export function EnhancedThemeControls() {
                   <motion.div
                     className="w-5 h-5 bg-white rounded-full shadow-lg"
                     animate={{ x: autoThemeEnabled ? 26 : 2 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                </motion.button>
+              </div>
+
+              {/* Auto Weather Toggle */}
+              <div className={`flex items-center justify-between mb-6 p-3 rounded-lg ${
+                theme.mode === 'light' ? 'bg-gray-50' : 'bg-white/5'
+              }`}>
+                <span className={theme.mode === 'light' ? 'text-gray-700' : 'text-white/80'}>
+                  Auto Weather-Based
+                </span>
+                <motion.button
+                  onClick={() => setAutoWeatherEnabled(!autoWeatherEnabled)}
+                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
+                    autoWeatherEnabled ? 'bg-blue-500' : theme.mode === 'light' ? 'bg-gray-300' : 'bg-white/20'
+                  }`}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.div
+                    className="w-5 h-5 bg-white rounded-full shadow-lg"
+                    animate={{ x: autoWeatherEnabled ? 26 : 2 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 </motion.button>
@@ -509,7 +638,22 @@ export function EnhancedThemeControls() {
                 )}
 
                 {activeTab === 'weather' && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    {weatherCondition && (
+                      <div className={`p-3 rounded-lg flex items-center justify-between ${
+                        theme.mode === 'light' ? 'bg-blue-50 border border-blue-200' : 'bg-white/10'
+                      }`}>
+                        <div className="text-sm">
+                          Suggested for your weather: <span className="capitalize font-medium">{weatherCondition}</span>
+                        </div>
+                        <button
+                          onClick={() => applyTheme(weatherThemes[weatherCondition].colors)}
+                          className={`px-3 py-1 rounded text-sm ${theme.mode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500/40 text-blue-200'}`}
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    )}
                     {Object.entries(weatherThemes).map(([key, weatherTheme], index) => (
                       <motion.button
                         key={key}
@@ -581,6 +725,14 @@ export function EnhancedThemeControls() {
                           })
                         }}
                       />
+                      <div className="flex justify-end mb-4">
+                        <button
+                          onClick={() => applyGradientTheme({ id: 'preview', name: 'Preview', colors: gradientColors, direction: gradientDirection, type: gradientType })}
+                          className={`px-3 py-2 rounded text-sm ${theme.mode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500/40 text-blue-200'}`}
+                        >
+                          Apply to site
+                        </button>
+                      </div>
 
                       {/* Gradient Type */}
                       <div className="mb-3">
@@ -702,12 +854,12 @@ export function EnhancedThemeControls() {
                         <h4 className={`font-medium mb-3 ${
                           theme.mode === 'light' ? 'text-gray-900' : 'text-white'
                         }`}>Saved Gradients</h4>
-                        <div className="space-y-2">
-                          {customGradients.map((gradient) => (
-                            <motion.button
-                              key={gradient.id}
-                              onClick={() => setCurrentGradient(gradient)}
-                              className={`w-full p-3 rounded-lg transition-all duration-200 text-left ${
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {customGradients.filter((item: any) => item && item.gradient && item.gradient.name).map((item: any) => (
+                            <motion.div
+                              key={item.id}
+                              onClick={() => item.gradient && setCurrentGradient(item.gradient)}
+                              className={`w-full p-3 rounded-lg transition-all duration-200 text-left cursor-pointer ${
                                 theme.mode === 'light'
                                   ? 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
                                   : 'bg-white/5 hover:bg-white/10'
@@ -720,18 +872,44 @@ export function EnhancedThemeControls() {
                                   className={`w-8 h-8 rounded border ${
                                     theme.mode === 'light' ? 'border-gray-300' : 'border-white/20'
                                   }`}
-                                  style={{ background: generateGradientCSS(gradient) }}
+                                  style={{ background: generateGradientCSS(item.gradient) }}
                                 />
                                 <div>
                                   <div className={`font-medium ${
                                     theme.mode === 'light' ? 'text-gray-900' : 'text-white'
-                                  }`}>{gradient.name}</div>
+                                  }`}>{item.gradient?.name || 'Unnamed Gradient'}</div>
                                   <div className={`text-sm ${
                                     theme.mode === 'light' ? 'text-gray-600' : 'text-white/60'
-                                  }`}>{gradient.type} gradient</div>
+                                  }`}>{item.gradient?.type || 'linear'} gradient</div>
+                                </div>
+                                <div className="ml-auto flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (item.gradient) applyGradientTheme(item.gradient) }}
+                                    className={`px-2 py-1 rounded text-xs ${theme.mode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500/40 text-blue-200'}`}
+                                  >
+                                    Apply
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async (e) => { e.preventDefault(); e.stopPropagation();
+                                      try {
+                                        const res = await fetch(`/api/themes/custom/${item.id}`, { method: 'DELETE' })
+                                        if (res.ok) {
+                                          // remove from list
+                                          // if using typed state, cast accordingly
+                                          // @ts-ignore
+                                          setCustomGradients((prev) => prev.filter((p: any) => p.id !== item.id))
+                                        }
+                                      } catch {}
+                                    }}
+                                    className={`px-2 py-1 rounded text-xs ${theme.mode === 'light' ? 'bg-red-600 text-white' : 'bg-red-500/40 text-red-200'}`}
+                                  >
+                                    Delete
+                                  </button>
                                 </div>
                               </div>
-                            </motion.button>
+                            </motion.div>
                           ))}
                         </div>
                       </div>

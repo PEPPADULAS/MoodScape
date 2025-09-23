@@ -51,6 +51,8 @@ model User {
   sessions  Session[]
   thoughts  Thought[]
   settings  UserSettings?
+  events    Event[]
+  customThemes CustomTheme[]
 }
 
 model UserSettings {
@@ -59,6 +61,9 @@ model UserSettings {
   currentTheme String @default("spring")
   autoTheme    Boolean @default(true)
   themeMode    String @default("light")
+  defaultFont  String? // e.g., 'inter', 'poppins', 'dancing-script'
+  defaultLanguage String? // e.g., 'en', 'hi', 'bn'
+  activeVisualPack String?
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -75,12 +80,43 @@ model Thought {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String
+  font        String? // key of the selected font
+  language    String? // BCP-47 code like 'en', 'hi', 'bn'
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
   @@index([season])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime // date-only semantics; store at 00:00 local
+  title       String
+  note        String?
+  notifyAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
+
+model CustomTheme {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  data      String   // JSON string with colors/gradient configuration
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {

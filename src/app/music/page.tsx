@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Music, Headphones, Heart, Settings, Info } from 'lucide-react';
+import { ArrowLeft, Music, Headphones, Heart, Settings, Info } from 'lucide-react'
+import { SmoothNavigation } from '@/components/navigation/smooth-navigation';
 import { useTheme } from '@/contexts/theme-context';
 import { useMusic } from '@/contexts/music-context';
 import { PageLoadingSpinner } from '@/components/loading/seasonal-loading';
@@ -33,9 +34,18 @@ export default function MusicPage() {
     );
   }
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/auth/signin');
+    }
+  }, [status, router]);
+
   if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
+    return (
+      <div className={`min-h-screen ${theme.background} flex items-center justify-center`}>
+        <PageLoadingSpinner />
+      </div>
+    );
   }
 
   return (
@@ -68,22 +78,13 @@ export default function MusicPage() {
               </div>
               
               <div className="flex items-center space-x-4">
-                <motion.button
-                  onClick={() => router.push('/about')}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${theme.text} hover:opacity-75 transition-opacity`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Info className="w-4 h-4" />
-                  <span>About</span>
-                </motion.button>
-                
                 <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${theme.card}`}>
                   <Headphones className="w-4 h-4 text-purple-500" />
                   <span className={`text-sm ${theme.text}`}>
                     {music.playlists.length} Playlist{music.playlists.length !== 1 ? 's' : ''}
                   </span>
                 </div>
+                <SmoothNavigation onSignOut={() => signOut()} />
               </div>
             </div>
           </div>

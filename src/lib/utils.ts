@@ -24,3 +24,29 @@ export function getSeasonFromDate(date: Date): string {
 export function getCurrentSeason(): string {
   return getSeasonFromDate(new Date())
 }
+
+// Map font keys to CSS font-family stacks for cross-browser compatibility
+export function getFontStack(fontKey: string): string {
+  switch (fontKey) {
+    case 'inter':
+      return 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+    case 'poppins':
+      return 'Poppins, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+    case 'merriweather':
+      return 'Merriweather, Georgia, Cambria, "Times New Roman", Times, serif'
+    case 'playfair':
+      return '"Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif'
+    case 'dancing-script':
+      return '"Dancing Script", "Segoe Script", "Bradley Hand", cursive'
+    case 'pacifico':
+      return 'Pacifico, "Segoe Script", "Brush Script MT", cursive'
+    case 'caveat':
+      return 'Caveat, "Segoe Script", "Bradley Hand", cursive'
+    case 'special-elite':
+      return '"Special Elite", "Courier New", Courier, monospace'
+    case 'roboto-mono':
+      return '"Roboto Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+    default:
+      return 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+  }
+}

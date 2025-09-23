@@ -26,7 +26,7 @@ export async function GET() {
       )
     }
 
-    return NextResponse.json(user.settings || { currentTheme: 'spring', autoTheme: true, themeMode: 'light' })
+    return NextResponse.json(user.settings || { currentTheme: 'spring', autoTheme: true, themeMode: 'light', defaultFont: null, defaultLanguage: null })
   } catch (error) {
     console.error('Settings fetch error:', error)
     return NextResponse.json(
@@ -58,20 +58,24 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    const { currentTheme, autoTheme, themeMode } = await req.json()
+    const { currentTheme, autoTheme, themeMode, defaultFont, defaultLanguage } = await req.json()
 
     const settings = await prisma.userSettings.upsert({
       where: { userId: user.id },
       update: {
         ...(currentTheme && { currentTheme }),
         ...(autoTheme !== undefined && { autoTheme }),
-        ...(themeMode && { themeMode })
+        ...(themeMode && { themeMode }),
+        ...(defaultFont !== undefined && { defaultFont }),
+        ...(defaultLanguage !== undefined && { defaultLanguage })
       },
       create: {
         userId: user.id,
         currentTheme: currentTheme || 'spring',
         autoTheme: autoTheme !== undefined ? autoTheme : true,
-        themeMode: themeMode || 'light'
+        themeMode: themeMode || 'light',
+        defaultFont: defaultFont || null,
+        defaultLanguage: defaultLanguage || null
       }
     })
 
