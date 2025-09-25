@@ -1,333 +1,400 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Bell, Edit, Trash2, Plus, Clock } from 'lucide-react'
-import { SmoothNavigation } from '@/components/navigation/smooth-navigation'
-import { useTheme } from '@/contexts/theme-context'
-import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { PageTransition } from '@/components/animations/micro-interactions'
-import { PageLoadingSpinner } from '@/components/loading/seasonal-loading'
-import ReminderModal from '@/components/reminder-modal'
+import { Plus, Calendar, Clock, Bell, Trash2, Edit2, Check, X, Search } from 'lucide-react'
+
+type CategoryType = 'work' | 'personal' | 'health' | 'other'
 
 interface Reminder {
   id: string
   title: string
-  note?: string
+  description: string
   date: string
-  notifyAt: string
+  time: string
+  category: CategoryType
+  completed: boolean
+}
+
+interface FormData {
+  title: string
+  description: string
+  date: string
+  time: string
+  category: CategoryType
 }
 
 export default function RemindersPage() {
-  const { theme } = useTheme()
-  const { data: session, status } = useSession()
-  const router = useRouter()
   const [reminders, setReminders] = useState<Reminder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [reminderModalOpen, setReminderModalOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCategory, setFilterCategory] = useState<'all' | CategoryType>('all')
+  const [formData, setFormData] = useState<FormData>({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    category: 'personal'
+  })
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin')
-    } else if (session) {
-      fetchReminders()
+    const savedReminders = localStorage.getItem('reminders')
+    if (savedReminders) {
+      setReminders(JSON.parse(savedReminders))
     }
-  }, [session, status, router])
+  }, [])
 
-  const fetchReminders = async () => {
-    try {
-      const response = await fetch('/api/calendar/events')
-      if (response.ok) {
-        const data = await response.json()
-        setReminders(data)
+  useEffect(() => {
+    localStorage.setItem('reminders', JSON.stringify(reminders))
+  }, [reminders])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (editingId) {
+      setReminders(reminders.map(reminder =>
+        reminder.id === editingId
+          ? { ...reminder, ...formData }
+          : reminder
+      ))
+      setEditingId(null)
+    } else {
+      const newReminder: Reminder = {
+        id: Date.now().toString(),
+        ...formData,
+        completed: false
       }
-    } catch (error) {
-      console.error('Failed to fetch reminders:', error)
-    } finally {
-      setLoading(false)
+      setReminders([...reminders, newReminder])
     }
+
+    setFormData({
+      title: '',
+      description: '',
+      date: '',
+      time: '',
+      category: 'personal'
+    })
+    setShowAddForm(false)
   }
 
-  const handleDeleteReminder = async (id: string) => {
-    try {
-      const response = await fetch(`/api/calendar/events/${id}`, {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        setReminders(prev => prev.filter(r => r.id !== id))
-      }
-    } catch (error) {
-      console.error('Failed to delete reminder:', error)
+  const handleEdit = (reminder: Reminder) => {
+    setFormData({
+      title: reminder.title,
+      description: reminder.description,
+      date: reminder.date,
+      time: reminder.time,
+      category: reminder.category
+    })
+    setEditingId(reminder.id)
+    setShowAddForm(true)
+  }
+
+  const handleDelete = (id: string) => {
+    setReminders(reminders.filter(reminder => reminder.id !== id))
+  }
+
+  const toggleComplete = (id: string) => {
+    setReminders(reminders.map(reminder =>
+      reminder.id === id
+        ? { ...reminder, completed: !reminder.completed }
+        : reminder
+    ))
+  }
+
+  const filteredReminders = reminders.filter(reminder => {
+    const matchesSearch = reminder.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         reminder.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = filterCategory === 'all' || reminder.category === filterCategory
+    return matchesSearch && matchesCategory
+  })
+
+  const upcomingReminders = filteredReminders
+    .filter(r => !r.completed)
+    .sort((a, b) => new Date(a.date + ' ' + a.time).getTime() - new Date(b.date + ' ' + b.time).getTime())
+
+  const completedReminders = filteredReminders.filter(r => r.completed)
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'work': return 'bg-blue-500'
+      case 'personal': return 'bg-purple-500'
+      case 'health': return 'bg-green-500'
+      default: return 'bg-gray-500'
     }
-  }
-
-  const handleEditReminder = (reminder: Reminder) => {
-    setEditingReminder(reminder)
-    setSelectedDate(new Date(reminder.date))
-    setReminderModalOpen(true)
-  }
-
-  const handleReminderCreated = () => {
-    fetchReminders()
-    setEditingReminder(null)
-    setSelectedDate(null)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const formatTime = (dateTimeString: string) => {
-    return new Date(dateTimeString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const isUpcoming = (dateString: string) => {
-    const reminderDate = new Date(dateString)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return reminderDate >= today
-  }
-
-  const upcomingReminders = reminders.filter(r => isUpcoming(r.date))
-  const pastReminders = reminders.filter(r => !isUpcoming(r.date))
-
-  if (status === 'loading' || loading) {
-    return (
-      <div className={`min-h-screen ${theme.background} flex items-center justify-center`}>
-        <PageLoadingSpinner />
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated') {
-    return null
   }
 
   return (
-    <PageTransition>
-      <div className={`min-h-screen ${theme.background}`}>
-        {/* Header */}
-        <header className={`border-b ${theme.card.includes('border') ? theme.card.split(' ').find(c => c.includes('border')) : 'border-gray-200'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-4">
-                <span className="text-3xl">{theme.emoji}</span>
-                <h1 className={`text-xl font-bold ${theme.text}`}>MoodScape</h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                <SmoothNavigation onSignOut={() => signOut()} />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="max-w-4xl mx-auto p-4">
-          {/* Page Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${theme.mode === 'light' ? 'bg-blue-100' : 'bg-blue-900/30'}`}>
-                <Bell className={`w-8 h-8 ${theme.mode === 'light' ? 'text-blue-600' : 'text-blue-400'}`} />
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+            <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className={`text-3xl font-bold ${theme.text}`}>Reminders</h1>
-                <p className={`${theme.accent}`}>Manage your upcoming events and notifications</p>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Reminders
+                </h1>
+                <p className="text-gray-600 mt-2">Never miss an important moment</p>
+              </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Add Reminder
+              </button>
+            </div>
+
+            {/* Search and Filter */}
+            <div className="flex gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search reminders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value as 'all' | CategoryType)}
+                className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">All Categories</option>
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+                <option value="health">Health</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Add/Edit Form Modal */}
+          {showAddForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+                <h2 className="text-2xl font-bold mb-6">
+                  {editingId ? 'Edit Reminder' : 'New Reminder'}
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Time
+                      </label>
+                      <input
+                        type="time"
+                        required
+                        value={formData.time}
+                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value as CategoryType })}
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="personal">Personal</option>
+                      <option value="work">Work</option>
+                      <option value="health">Health</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2 rounded-lg hover:shadow-lg transition-all duration-300"
+                    >
+                      {editingId ? 'Update' : 'Add'} Reminder
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddForm(false)
+                        setEditingId(null)
+                        setFormData({
+                          title: '',
+                          description: '',
+                          date: '',
+                          time: '',
+                          category: 'personal'
+                        })
+                      }}
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-            <motion.button
-              onClick={() => {
-                setSelectedDate(new Date())
-                setReminderModalOpen(true)
-              }}
-              className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
-                theme.mode === 'light'
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-blue-500/40 hover:bg-blue-500/60 text-blue-200'
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Plus className="w-5 h-5" />
-              Add Reminder
-            </motion.button>
-          </div>
+          )}
 
           {/* Upcoming Reminders */}
           <div className="mb-8">
-            <h2 className={`text-xl font-semibold ${theme.text} mb-4 flex items-center gap-2`}>
-              <Calendar className="w-5 h-5" />
-              Upcoming Reminders ({upcomingReminders.length})
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Bell className="w-6 h-6 text-indigo-600" />
+              Upcoming Reminders
             </h2>
-            {upcomingReminders.length === 0 ? (
-              <div className={`${theme.card} rounded-xl p-8 text-center`}>
-                <Bell className={`w-12 h-12 mx-auto mb-4 ${theme.accent}`} />
-                <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>No upcoming reminders</h3>
-                <p className={`${theme.accent} mb-4`}>Create your first reminder to get started</p>
-                <motion.button
-                  onClick={() => {
-                    setSelectedDate(new Date())
-                    setReminderModalOpen(true)
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    theme.mode === 'light'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-500/40 hover:bg-blue-500/60 text-blue-200'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Create Reminder
-                </motion.button>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                <AnimatePresence>
-                  {upcomingReminders.map((reminder, index) => (
-                    <motion.div
-                      key={reminder.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`${theme.card} rounded-xl p-6 shadow-md`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>
-                            {reminder.title}
-                          </h3>
-                          {reminder.note && (
-                            <p className={`${theme.accent} mb-3`}>{reminder.note}</p>
-                          )}
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className={`flex items-center gap-1 ${theme.accent}`}>
-                              <Calendar className="w-4 h-4" />
-                              {formatDate(reminder.date)}
-                            </div>
-                            <div className={`flex items-center gap-1 ${theme.accent}`}>
-                              <Clock className="w-4 h-4" />
-                              {formatTime(reminder.notifyAt)}
-                            </div>
+            <div className="grid gap-4">
+              {upcomingReminders.length > 0 ? (
+                upcomingReminders.map(reminder => (
+                  <div
+                    key={reminder.id}
+                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`px-3 py-1 rounded-full text-white text-xs ${getCategoryColor(reminder.category)}`}>
+                            {reminder.category}
+                          </span>
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(reminder.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <Clock className="w-4 h-4" />
+                            {reminder.time}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <motion.button
-                            onClick={() => handleEditReminder(reminder)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              theme.mode === 'light'
-                                ? 'hover:bg-gray-100 text-gray-600'
-                                : 'hover:bg-white/10 text-white/60'
-                            }`}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </motion.button>
-                          <motion.button
-                            onClick={() => handleDeleteReminder(reminder.id)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              theme.mode === 'light'
-                                ? 'hover:bg-red-100 text-red-600'
-                                : 'hover:bg-red-500/20 text-red-400'
-                            }`}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </motion.button>
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-800">{reminder.title}</h3>
+                        {reminder.description && (
+                          <p className="text-gray-600 mt-1">{reminder.description}</p>
+                        )}
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => toggleComplete(reminder.id)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                        >
+                          <Check className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(reminder)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(reminder.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="bg-gray-50 rounded-xl p-8 text-center">
+                  <Bell className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No upcoming reminders</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Past Reminders */}
-          {pastReminders.length > 0 && (
+          {/* Completed Reminders */}
+          {completedReminders.length > 0 && (
             <div>
-              <h2 className={`text-xl font-semibold ${theme.text} mb-4 flex items-center gap-2`}>
-                <Calendar className="w-5 h-5" />
-                Past Reminders ({pastReminders.length})
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <Check className="w-6 h-6 text-green-600" />
+                Completed
               </h2>
               <div className="grid gap-4">
-                <AnimatePresence>
-                  {pastReminders.map((reminder, index) => (
-                    <motion.div
-                      key={reminder.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`${theme.card} rounded-xl p-6 shadow-md opacity-60`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className={`text-lg font-semibold ${theme.text} mb-2`}>
-                            {reminder.title}
-                          </h3>
-                          {reminder.note && (
-                            <p className={`${theme.accent} mb-3`}>{reminder.note}</p>
-                          )}
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className={`flex items-center gap-1 ${theme.accent}`}>
-                              <Calendar className="w-4 h-4" />
-                              {formatDate(reminder.date)}
-                            </div>
-                            <div className={`flex items-center gap-1 ${theme.accent}`}>
-                              <Clock className="w-4 h-4" />
-                              {formatTime(reminder.notifyAt)}
-                            </div>
+                {completedReminders.map(reminder => (
+                  <div
+                    key={reminder.id}
+                    className="bg-gray-50 rounded-xl p-6 opacity-75"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`px-3 py-1 rounded-full text-white text-xs ${getCategoryColor(reminder.category)}`}>
+                            {reminder.category}
+                          </span>
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(reminder.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <Clock className="w-4 h-4" />
+                            {reminder.time}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <motion.button
-                            onClick={() => handleDeleteReminder(reminder.id)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              theme.mode === 'light'
-                                ? 'hover:bg-red-100 text-red-600'
-                                : 'hover:bg-red-500/20 text-red-400'
-                            }`}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </motion.button>
-                        </div>
+                        <h3 className="text-lg font-semibold text-gray-800 line-through">
+                          {reminder.title}
+                        </h3>
+                        {reminder.description && (
+                          <p className="text-gray-600 mt-1 line-through">{reminder.description}</p>
+                        )}
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => toggleComplete(reminder.id)}
+                          className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(reminder.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
-
-        {/* Reminder Modal */}
-        {selectedDate && (
-          <ReminderModal
-            isOpen={reminderModalOpen}
-            onClose={() => {
-              setReminderModalOpen(false)
-              setSelectedDate(null)
-              setEditingReminder(null)
-            }}
-            selectedDate={selectedDate}
-            onReminderCreated={handleReminderCreated}
-          />
-        )}
       </div>
-    </PageTransition>
+    </div>
   )
 }

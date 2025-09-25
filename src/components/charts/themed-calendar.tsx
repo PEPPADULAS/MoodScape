@@ -41,8 +41,14 @@ export function ThemedCalendar() {
 
   const handleDateClick = (day: number) => {
     const clickedDate = new Date(cursor.y, cursor.m, day)
-    setSelectedDate(clickedDate)
-    setReminderModalOpen(true)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // Only allow selection of current or future dates
+    if (clickedDate >= today) {
+      setSelectedDate(clickedDate)
+      setReminderModalOpen(true)
+    }
   }
 
   const handleReminderCreated = () => {
@@ -95,15 +101,21 @@ export function ThemedCalendar() {
           if (!d) return <div key={`${wi}-${di}`} />
           const dateKey = toISODate(new Date(cursor.y, cursor.m, d))
           const summary = days[dateKey]
+          const date = new Date(cursor.y, cursor.m, d)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
           const isToday = dateKey === toISODate(today)
           const marker = summary?.seasons.find(Boolean) || null
+          const isPast = date < today
+          
           return (
             <motion.button
               key={`${wi}-${di}`}
               onClick={() => handleDateClick(d)}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className={`rounded-lg p-2 border ${isToday ? 'ring-2 ring-offset-2 ring-blue-400' : 'border-white/10'} ${theme.text}`}
+              whileHover={{ scale: isPast ? 1 : 1.03 }}
+              whileTap={{ scale: isPast ? 1 : 0.98 }}
+              disabled={isPast}
+              className={`rounded-lg p-2 border ${isToday ? 'ring-2 ring-offset-2 ring-blue-400' : 'border-white/10'} ${theme.text} ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className="text-sm">{d}</div>
               <div className="h-5">
