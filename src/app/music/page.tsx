@@ -26,6 +26,13 @@ export default function MusicPage() {
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
 
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/auth/signin');
+    }
+  }, [status, router]);
+
   if (status === 'loading') {
     return (
       <div className={`min-h-screen ${theme.background} flex items-center justify-center`}>
@@ -33,12 +40,6 @@ export default function MusicPage() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/auth/signin');
-    }
-  }, [status, router]);
 
   if (status === 'unauthenticated') {
     return (
