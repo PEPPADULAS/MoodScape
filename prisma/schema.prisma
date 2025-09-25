@@ -7,7 +7,8 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // Use a direct file path to avoid missing .env during local dev
+  url      = "file:./dev.db"
 }
 
 model Account {
