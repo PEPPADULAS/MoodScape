@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Ensure Turbopack picks the correct workspace when multiple lockfiles exist
+  experimental: {
+    turbo: {
+      // Point root at the project directory to avoid C:\Users\nirma lockfile selection
+      root: __dirname,
+    },
+  },
 };
 
 export default nextConfig;
