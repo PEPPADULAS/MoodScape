@@ -13,7 +13,8 @@ import {
   Music2, 
   LogOut,
   Menu,
-  X
+  X,
+  BookOpen
 } from 'lucide-react'
 
 interface NavItem {
@@ -26,11 +27,18 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
+    id: 'journal',
+    label: 'My Journal',
+    path: '/journal',
+    icon: BookOpen,
+    color: 'blue'
+  },
+  {
     id: 'dashboard',
     label: 'Dashboard',
     path: '/dashboard',
     icon: Home,
-    color: 'blue'
+    color: 'gray'
   },
   {
     id: 'reminders',

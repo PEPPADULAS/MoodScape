@@ -11,6 +11,7 @@ import ThemeSelector from '@/components/theme-selector'
 import ThoughtCard from '@/components/thought-card'
 import CreateThoughtModal from '@/components/create-thought-modal'
 import AnalyticsDashboard from '@/components/analytics-dashboard'
+import EnhancedSearchFilter from '@/components/enhanced-search-filter'
 import { LoadingWrapper, ThoughtCardSkeleton } from '@/components/loading/loading-wrapper'
 import { PageLoadingSpinner } from '@/components/loading/seasonal-loading'
 import { ParallaxContainer, ScrollTriggeredAnimation, StaggeredAnimation, ScrollProgressIndicator } from '@/components/animations/parallax-container'
@@ -45,10 +46,8 @@ export default function Dashboard() {
   const router = useRouter()
   const { theme } = useTheme()
   const [thoughts, setThoughts] = useState<Thought[]>([])
+  const [filteredThoughts, setFilteredThoughts] = useState<Thought[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedSeason, setSelectedSeason] = useState('')
-  const [selectedMood, setSelectedMood] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [showAccessibilityControls, setShowAccessibilityControls] = useState(false)
 
@@ -65,15 +64,11 @@ export default function Dashboard() {
     if (session) {
       fetchThoughts()
     }
-  }, [session, selectedSeason, selectedMood])
+  }, [session])
 
   const fetchThoughts = async () => {
     try {
-      const params = new URLSearchParams()
-      if (selectedSeason) params.append('season', selectedSeason)
-      if (selectedMood) params.append('mood', selectedMood)
-
-      const response = await fetch(`/api/thoughts?${params}`)
+      const response = await fetch('/api/thoughts')
       if (response.ok) {
         const data = await response.json()
         setThoughts(data)
@@ -103,10 +98,9 @@ export default function Dashboard() {
     setThoughts(prev => prev.map(t => t.id === updatedThought.id ? updatedThought : t))
   }
 
-  const filteredThoughts = thoughts.filter(thought =>
-    thought.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    thought.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleFilteredThoughts = (filtered: Thought[]) => {
+    setFilteredThoughts(filtered)
+  }
 
   if (status === 'loading' || !session) {
     return (
@@ -195,59 +189,27 @@ export default function Dashboard() {
           </div>
         </ScrollTriggeredAnimation>
         
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${theme.accent}`} />
-              <ThemedInput
-                type="text"
-                placeholder="Search your thoughts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2"
-              />
-            </div>
+        {/* Enhanced Search & Filter */}
+        <ScrollTriggeredAnimation animation="fadeInUp" delay={0.6}>
+          <div className="mb-8">
+            <EnhancedSearchFilter
+              thoughts={thoughts}
+              onFilteredThoughts={handleFilteredThoughts}
+            />
           </div>
-          
-          <div className="flex gap-2">
-            <ThemedSelect
-              value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value)}
-              className="px-4 py-2"
-            >
-              <option value="">All Seasons</option>
-              <option value="spring">🌸 Spring</option>
-              <option value="summer">☀️ Summer</option>
-              <option value="fall">🍂 Fall</option>
-              <option value="winter">❄️ Winter</option>
-              <option value="rainy">🌧️ Rainy</option>
-            </ThemedSelect>
-            
-            <ThemedSelect
-              value={selectedMood}
-              onChange={(e) => setSelectedMood(e.target.value)}
-              className="px-4 py-2"
-            >
-              <option value="">All Moods</option>
-              <option value="happy">😊 Happy</option>
-              <option value="sad">😢 Sad</option>
-              <option value="excited">🤩 Excited</option>
-              <option value="calm">😌 Calm</option>
-              <option value="anxious">😰 Anxious</option>
-              <option value="grateful">🙏 Grateful</option>
-            </ThemedSelect>
-            
-            <EnhancedButton
-              onClick={() => setIsCreateModalOpen(true)}
-              variant="primary"
-              size="md"
-              className="flex items-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Thought</span>
-            </EnhancedButton>
-          </div>
+        </ScrollTriggeredAnimation>
+
+        {/* New Thought Button */}
+        <div className="flex justify-center mb-8">
+          <EnhancedButton
+            onClick={() => setIsCreateModalOpen(true)}
+            variant="primary"
+            size="lg"
+            className="flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create New Thought</span>
+          </EnhancedButton>
         </div>
 
         {/* Thoughts Grid */}
@@ -269,7 +231,7 @@ export default function Dashboard() {
               <p className={`${theme.accent} mb-6`}>
                 {thoughts.length === 0 
                   ? 'Create your first thought to begin your seasonal journal.'
-                  : 'Try adjusting your search or filters.'}
+                  : 'Try adjusting your search or filters to find what you\'re looking for.'}
               </p>
               {thoughts.length === 0 && (
                 <EnhancedButton
@@ -284,15 +246,22 @@ export default function Dashboard() {
           ) : (
             <ScrollTriggeredAnimation animation="fadeInUp" delay={0.4}>
               <StaggeredAnimation staggerDelay={0.1}>
-                {filteredThoughts.map((thought, index) => (
-                  <div key={thought.id} className="mb-6">
-                    <ThoughtCard
-                      thought={thought}
-                      onDelete={handleThoughtDeleted}
-                      onUpdate={handleThoughtUpdated}
-                    />
-                  </div>
-                ))}
+                <div className="grid grid-cols-1 gap-6">
+                  {filteredThoughts.map((thought, index) => (
+                    <motion.div 
+                      key={thought.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <ThoughtCard
+                        thought={thought}
+                        onDelete={handleThoughtDeleted}
+                        onUpdate={handleThoughtUpdated}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
               </StaggeredAnimation>
             </ScrollTriggeredAnimation>
           )}

@@ -15,7 +15,7 @@ export default function Home() {
 
   useEffect(() => {
     if (session) {
-      router.push('/dashboard')
+      router.push('/journal')
     }
   }, [session, router])
 
