@@ -24,7 +24,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession()
   const [currentTheme, setCurrentTheme] = useState<ThemeName>('spring')
-  const [autoTheme, setAutoTheme] = useState(true)
+  const [autoTheme, setAutoTheme] = useState(false)
   const [themeMode, setThemeMode] = useState<ThemeMode>('light')
   const [customGradient, setCustomGradient] = useState<string | null>(null)
 
@@ -38,6 +38,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const root = document.documentElement
         root.style.setProperty('background', savedGradient)
         document.body.style.background = savedGradient
+      }
+      
+      // Load saved theme from localStorage as well
+      const savedTheme = localStorage.getItem('moodscape-theme')
+      const savedThemeMode = localStorage.getItem('moodscape-theme-mode')
+      const savedAutoTheme = localStorage.getItem('moodscape-auto-theme')
+      
+      if (savedTheme && savedTheme in themes) {
+        setCurrentTheme(savedTheme as ThemeName)
+      }
+      
+      if (savedThemeMode && (savedThemeMode === 'light' || savedThemeMode === 'dark')) {
+        setThemeMode(savedThemeMode as ThemeMode)
+      }
+      
+      if (savedAutoTheme !== null) {
+        setAutoTheme(savedAutoTheme === 'true')
       }
     }
   }, [])
@@ -88,7 +105,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [autoTheme, themeMode, session, customGradient])
+    
+    // Save theme to localStorage whenever it changes
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodscape-theme', currentTheme)
+      localStorage.setItem('moodscape-theme-mode', themeMode)
+      localStorage.setItem('moodscape-auto-theme', autoTheme.toString())
+    }
+  }, [autoTheme, themeMode, session, customGradient, currentTheme])
 
   // Apply custom gradient when it changes
   useEffect(() => {
@@ -120,11 +144,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const savedGradient = typeof window !== 'undefined' ? localStorage.getItem('moodscape-custom-gradient') : null
         
         // Only update theme if no custom gradient is active (either in state or localStorage)
+        // AND if we're not currently using a custom gradient
         if (!customGradient && !savedGradient) {
           setCurrentTheme(userTheme)
           setThemeMode(userMode)
         }
-        setAutoTheme(settings.autoTheme ?? true)
+        setAutoTheme(settings.autoTheme ?? false)
       }
     } catch (error) {
       console.error('Failed to fetch user theme:', error)
@@ -153,19 +178,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setCurrentTheme(theme)
     const newMode = themes[theme].mode
     setThemeMode(newMode)
-    // Clear custom gradient when switching to regular theme
-    if (customGradient) {
-      setCustomGradient(null)
-      const root = document.documentElement
-      root.style.removeProperty('background')
-      document.body.style.removeProperty('background')
-      // Clear from localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('moodscape-custom-gradient')
-      }
-    }
     if (session?.user) {
       updateUserTheme(theme, undefined, newMode)
+    }
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodscape-theme', theme)
+      localStorage.setItem('moodscape-theme-mode', newMode)
     }
   }
 
@@ -177,12 +197,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (session?.user) {
       updateUserTheme(newTheme, undefined, newMode)
     }
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodscape-theme', newTheme)
+      localStorage.setItem('moodscape-theme-mode', newMode)
+    }
   }
 
   const handleSetThemeMode = (mode: ThemeMode) => {
     setThemeMode(mode)
     // Update theme to match the new mode
-    if (autoTheme) {
+    if (autoTheme && !customGradient) {
       const season = getCurrentSeason()
       const newTheme = getThemeBySeasonAndMode(season, mode)
       setCurrentTheme(newTheme)
@@ -198,6 +224,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
       }
     }
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodscape-theme-mode', mode)
+    }
   }
 
   const handleAutoTheme = (auto: boolean) => {
@@ -205,10 +236,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (session?.user) {
       updateUserTheme(currentTheme, auto)
     }
-    if (auto) {
+    if (auto && !customGradient) {
       const season = getCurrentSeason()
       const newTheme = getThemeBySeasonAndMode(season, themeMode)
       setTheme(newTheme)
+    }
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodscape-auto-theme', auto.toString())
     }
   }
 

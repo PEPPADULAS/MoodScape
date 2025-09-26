@@ -63,9 +63,9 @@ const timeBasedThemes: TimeBasedTheme[] = [
       primary: '#FF6B6B',
       secondary: '#FFE66D',
       accent: '#FF8E53',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      surface: 'rgba(255, 255, 255, 0.1)',
-      text: '#FFFFFF'
+      background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+      surface: 'rgba(255, 255, 255, 0.9)',
+      text: '#2C3E50'
     },
     icon: <Sunrise className="w-5 h-5" />,
     description: 'Gentle morning awakening'
@@ -78,9 +78,9 @@ const timeBasedThemes: TimeBasedTheme[] = [
       primary: '#4ECDC4',
       secondary: '#45B7D1',
       accent: '#F9CA24',
-      background: 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)',
-      surface: 'rgba(255, 255, 255, 0.15)',
-      text: '#FFFFFF'
+      background: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)',
+      surface: 'rgba(255, 255, 255, 0.9)',
+      text: '#2C3E50'
     },
     icon: <Sun className="w-5 h-5" />,
     description: 'Bright and energetic'
@@ -93,8 +93,8 @@ const timeBasedThemes: TimeBasedTheme[] = [
       primary: '#F39C12',
       secondary: '#E67E22',
       accent: '#D35400',
-      background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-      surface: 'rgba(255, 255, 255, 0.2)',
+      background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      surface: 'rgba(255, 255, 255, 0.9)',
       text: '#2C3E50'
     },
     icon: <Sun className="w-5 h-5" />,
@@ -109,7 +109,7 @@ const timeBasedThemes: TimeBasedTheme[] = [
       secondary: '#8E44AD',
       accent: '#E74C3C',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      surface: 'rgba(255, 255, 255, 0.1)',
+      surface: 'rgba(255, 255, 255, 0.9)',
       text: '#FFFFFF'
     },
     icon: <Sunset className="w-5 h-5" />,
@@ -141,7 +141,7 @@ const weatherThemes: Record<string, WeatherTheme> = {
       secondary: '#E67E22',
       accent: '#D35400',
       background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-      surface: 'rgba(255, 255, 255, 0.2)',
+      surface: 'rgba(255, 255, 255, 0.9)',
       text: '#2C3E50'
     }
   },
@@ -152,7 +152,7 @@ const weatherThemes: Record<string, WeatherTheme> = {
       secondary: '#7F8C8D',
       accent: '#34495E',
       background: 'linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%)',
-      surface: 'rgba(255, 255, 255, 0.1)',
+      surface: 'rgba(255, 255, 255, 0.8)',
       text: '#2C3E50'
     }
   },
@@ -163,7 +163,7 @@ const weatherThemes: Record<string, WeatherTheme> = {
       secondary: '#2980B9',
       accent: '#1ABC9C',
       background: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
-      surface: 'rgba(255, 255, 255, 0.15)',
+      surface: 'rgba(255, 255, 255, 0.85)',
       text: '#2C3E50'
     },
     particles: 'rain'
@@ -171,10 +171,10 @@ const weatherThemes: Record<string, WeatherTheme> = {
 };
 
 export function EnhancedThemeControls() {
-  const { theme, setTheme, setCustomGradient } = useTheme();
+  const { theme, setTheme, setCustomGradient, autoTheme, setAutoTheme } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'time' | 'weather' | 'custom'>('time');
-  const [autoThemeEnabled, setAutoThemeEnabled] = useState(false); // Start with false to prevent hydration issues
+  const [autoThemeEnabled, setAutoThemeEnabled] = useState(false);
   const [customGradients, setCustomGradients] = useState<any[]>([]);
   const [currentGradient, setCurrentGradient] = useState<CustomGradient | null>(null);
   const [gradientColors, setGradientColors] = useState(['#667eea', '#764ba2']);
@@ -191,8 +191,9 @@ export function EnhancedThemeControls() {
   // Set client state after hydration to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
-    setAutoThemeEnabled(true);
-  }, []);
+    // Initialize auto theme setting from context
+    setAutoThemeEnabled(autoTheme);
+  }, [autoTheme]);
 
   // Load saved custom gradients from API
   useEffect(() => {
@@ -370,6 +371,11 @@ export function EnhancedThemeControls() {
     
     // Update theme context to persist across page navigation
     setCustomGradient(gradientCss)
+    
+    // Also apply directly to DOM to ensure immediate effect
+    const root = document.documentElement
+    root.style.setProperty('background', gradientCss)
+    document.body.style.background = gradientCss
   }
 
   // Add gradient color
@@ -432,6 +438,13 @@ export function EnhancedThemeControls() {
     reader.readAsText(file);
   };
 
+  const handleAutoThemeToggle = () => {
+    const newAutoThemeEnabled = !autoThemeEnabled;
+    setAutoThemeEnabled(newAutoThemeEnabled);
+    // Update the theme context as well
+    setAutoTheme(newAutoThemeEnabled);
+  };
+
   return (
     <motion.div
       className="fixed top-4 right-4 z-50"
@@ -444,9 +457,9 @@ export function EnhancedThemeControls() {
             <motion.button
               onClick={() => setIsExpanded(!isExpanded)}
               data-theme-studio-toggle
-              className={`w-12 h-12 backdrop-blur-md rounded-full border flex items-center justify-center transition-all duration-300 ${
+              className={`w-12 h-12 backdrop-blur-md rounded-full border flex items-center justify-center transition-all duration-300 shadow-lg ${
                 theme.mode === 'light'
-                  ? 'bg-white/90 border-gray-200 text-gray-700 hover:bg-white hover:shadow-lg'
+                  ? 'bg-white/90 border-gray-300 text-gray-700 hover:bg-white hover:shadow-xl'
                   : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
               }`}
               whileHover={{ scale: 1.05 }}
@@ -465,7 +478,7 @@ export function EnhancedThemeControls() {
               transition={{ duration: 0.2 }}
               className={`absolute top-16 right-0 w-[92vw] max-w-[26rem] sm:w-96 backdrop-blur-xl rounded-2xl border p-6 shadow-2xl ${
                 theme.mode === 'light'
-                  ? 'bg-white/95 border-gray-200 text-gray-900'
+                  ? 'bg-white/95 border-gray-200 text-gray-900 shadow-xl'
                   : 'bg-white/10 border-white/20 text-white'
               }`}
             >
@@ -519,13 +532,13 @@ export function EnhancedThemeControls() {
 
               {/* Auto Theme Toggle */}
               <div className={`flex items-center justify-between mb-4 p-3 rounded-lg ${
-                theme.mode === 'light' ? 'bg-gray-50' : 'bg-white/5'
+                theme.mode === 'light' ? 'bg-gray-50 border border-gray-200' : 'bg-white/5'
               }`}>
                 <span className={theme.mode === 'light' ? 'text-gray-700' : 'text-white/80'}>
                   Auto Time-Based
                 </span>
                 <motion.button
-                  onClick={() => setAutoThemeEnabled(!autoThemeEnabled)}
+                  onClick={handleAutoThemeToggle}
                   className={`w-12 h-6 rounded-full transition-all duration-200 ${
                     autoThemeEnabled ? 'bg-blue-500' : theme.mode === 'light' ? 'bg-gray-300' : 'bg-white/20'
                   }`}
@@ -541,7 +554,7 @@ export function EnhancedThemeControls() {
 
               {/* Auto Weather Toggle */}
               <div className={`flex items-center justify-between mb-6 p-3 rounded-lg ${
-                theme.mode === 'light' ? 'bg-gray-50' : 'bg-white/5'
+                theme.mode === 'light' ? 'bg-gray-50 border border-gray-200' : 'bg-white/5'
               }`}>
                 <span className={theme.mode === 'light' ? 'text-gray-700' : 'text-white/80'}>
                   Auto Weather-Based
@@ -572,7 +585,7 @@ export function EnhancedThemeControls() {
                     className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${
                       activeTab === tab
                         ? theme.mode === 'light'
-                          ? 'bg-white text-gray-900 shadow-sm'
+                          ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                           : 'bg-white/20 text-white'
                         : theme.mode === 'light'
                         ? 'text-gray-600 hover:text-gray-800'
@@ -596,7 +609,7 @@ export function EnhancedThemeControls() {
                         onClick={() => applyTheme(timeTheme.colors)}
                         className={`w-full p-3 rounded-lg transition-all duration-200 text-left ${
                           theme.mode === 'light'
-                            ? 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
+                            ? 'bg-white hover:bg-gray-50 border border-gray-200 shadow-sm hover:shadow-md'
                             : 'bg-white/5 hover:bg-white/10'
                         }`}
                         initial={{ opacity: 0, y: 20 }}
@@ -648,7 +661,7 @@ export function EnhancedThemeControls() {
                         </div>
                         <button
                           onClick={() => applyTheme(weatherThemes[weatherCondition].colors)}
-                          className={`px-3 py-1 rounded text-sm ${theme.mode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500/40 text-blue-200'}`}
+                          className={`px-3 py-1 rounded text-sm ${theme.mode === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'bg-blue-500/40 text-blue-200'}`}
                         >
                           Apply
                         </button>
@@ -660,7 +673,7 @@ export function EnhancedThemeControls() {
                         onClick={() => applyTheme(weatherTheme.colors)}
                         className={`w-full p-3 rounded-lg transition-all duration-200 text-left ${
                           theme.mode === 'light'
-                            ? 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
+                            ? 'bg-white hover:bg-gray-50 border border-gray-200 shadow-sm hover:shadow-md'
                             : 'bg-white/5 hover:bg-white/10'
                         }`}
                         initial={{ opacity: 0, y: 20 }}
@@ -704,7 +717,7 @@ export function EnhancedThemeControls() {
                   <div className="space-y-4">
                     {/* Gradient Builder */}
                     <div className={`p-4 rounded-lg ${
-                      theme.mode === 'light' ? 'bg-gray-50 border border-gray-200' : 'bg-white/5'
+                      theme.mode === 'light' ? 'bg-white border border-gray-200 shadow-sm' : 'bg-white/5'
                     }`}>
                       <h4 className={`font-medium mb-3 ${
                         theme.mode === 'light' ? 'text-gray-900' : 'text-white'
@@ -728,7 +741,7 @@ export function EnhancedThemeControls() {
                       <div className="flex justify-end mb-4">
                         <button
                           onClick={() => applyGradientTheme({ id: 'preview', name: 'Preview', colors: gradientColors, direction: gradientDirection, type: gradientType })}
-                          className={`px-3 py-2 rounded text-sm ${theme.mode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500/40 text-blue-200'}`}
+                          className={`px-3 py-2 rounded text-sm ${theme.mode === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'bg-blue-500/40 text-blue-200'}`}
                         >
                           Apply to site
                         </button>
@@ -840,7 +853,7 @@ export function EnhancedThemeControls() {
                         onClick={createCustomGradient}
                         className={`w-full py-2 rounded-lg transition-all duration-200 ${
                           theme.mode === 'light'
-                            ? 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                            ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 shadow-sm'
                             : 'bg-blue-500/30 hover:bg-blue-500/40 text-blue-300'
                         }`}
                       >
@@ -861,7 +874,7 @@ export function EnhancedThemeControls() {
                               onClick={() => item.gradient && setCurrentGradient(item.gradient)}
                               className={`w-full p-3 rounded-lg transition-all duration-200 text-left cursor-pointer ${
                                 theme.mode === 'light'
-                                  ? 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
+                                  ? 'bg-white hover:bg-gray-50 border border-gray-200 shadow-sm hover:shadow-md'
                                   : 'bg-white/5 hover:bg-white/10'
                               }`}
                               whileHover={{ scale: 1.02 }}
@@ -886,7 +899,7 @@ export function EnhancedThemeControls() {
                                   <button
                                     type="button"
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (item.gradient) applyGradientTheme(item.gradient) }}
-                                    className={`px-2 py-1 rounded text-xs ${theme.mode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-500/40 text-blue-200'}`}
+                                    className={`px-2 py-1 rounded text-xs ${theme.mode === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'bg-blue-500/40 text-blue-200'}`}
                                   >
                                     Apply
                                   </button>
@@ -903,7 +916,7 @@ export function EnhancedThemeControls() {
                                         }
                                       } catch {}
                                     }}
-                                    className={`px-2 py-1 rounded text-xs ${theme.mode === 'light' ? 'bg-red-600 text-white' : 'bg-red-500/40 text-red-200'}`}
+                                    className={`px-2 py-1 rounded text-xs ${theme.mode === 'light' ? 'bg-red-600 text-white shadow-sm' : 'bg-red-500/40 text-red-200'}`}
                                   >
                                     Delete
                                   </button>

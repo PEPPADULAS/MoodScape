@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, X, Calendar, Clock } from 'lucide-react'
 import { useTheme } from '@/contexts/theme-context'
+import { useSession } from 'next-auth/react'
 
 interface Reminder {
   id: string
@@ -19,16 +20,31 @@ interface NotificationSystemProps {
 
 export function NotificationSystem({ children }: NotificationSystemProps) {
   const { theme } = useTheme()
+  const { data: session, status } = useSession()
   const [notifications, setNotifications] = useState<Reminder[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     // Check for due reminders every minute
     const checkReminders = async () => {
+      // Only check for reminders if user is authenticated
+      if (status !== 'authenticated') {
+        console.log('User not authenticated, skipping reminder check. Status:', status)
+        return
+      }
+      
+      console.log('User is authenticated, session:', session) // Debug log
+      
       try {
-        const response = await fetch('/api/calendar/reminders/due')
+        console.log('Checking for due reminders...') // Debug log
+        const response = await fetch('/api/calendar/reminders/due', {
+          credentials: 'include' // Include credentials for authentication
+        })
+        console.log('Reminder API response status:', response.status) // Debug log
+        
         if (response.ok) {
           const dueReminders = await response.json()
+          console.log('Due reminders received:', dueReminders) // Debug log
           if (dueReminders.length > 0) {
             setNotifications(prev => {
               // Add new notifications that aren't already shown
@@ -39,20 +55,36 @@ export function NotificationSystem({ children }: NotificationSystemProps) {
             })
             setShowNotifications(true)
           }
+        } else {
+          // Handle HTTP errors
+          const errorText = await response.text()
+          console.error('Failed to fetch reminders:', response.status, response.statusText, errorText)
+          
+          // If unauthorized, don't show error (user might not be logged in yet)
+          if (response.status === 401) {
+            console.log('User not authenticated, skipping reminder check')
+          }
         }
       } catch (error) {
-        console.error('Error checking reminders:', error)
+        // Handle network errors
+        console.error('Network error while fetching reminders:', error)
       }
     }
 
-    // Check immediately
-    checkReminders()
+    // Don't check immediately if user is not authenticated yet
+    if (status === 'authenticated') {
+      checkReminders()
+    }
 
     // Check every minute
-    const interval = setInterval(checkReminders, 60000)
+    const interval = setInterval(() => {
+      if (status === 'authenticated') {
+        checkReminders()
+      }
+    }, 60000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [status, session])
 
   const dismissNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id))

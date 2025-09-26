@@ -51,6 +51,50 @@ export default function ThemeSelector() {
     ? 'border-gray-200'
     : 'border-gray-600'
 
+  // Function to get theme-specific styling for the selector
+  const getThemeOptionClasses = (themeName: ThemeName) => {
+    if (themeMode === 'light') {
+      switch (themeName) {
+        case 'spring':
+          return 'hover:bg-emerald-50/80 border-emerald-100'
+        case 'summer':
+          return 'hover:bg-amber-50/80 border-amber-100'
+        case 'fall':
+          return 'hover:bg-orange-50/80 border-orange-100'
+        case 'winter':
+          return 'hover:bg-sky-50/80 border-sky-100'
+        case 'rainy':
+          return 'hover:bg-slate-50/80 border-slate-100'
+        default:
+          return 'hover:bg-gray-100/80 border-gray-100'
+      }
+    } else {
+      return hoverClasses
+    }
+  }
+
+  // Function to get selected theme-specific styling
+  const getSelectedThemeOptionClasses = (themeName: ThemeName) => {
+    if (themeMode === 'light') {
+      switch (themeName) {
+        case 'spring':
+          return 'bg-emerald-50/90 border-l-2 border-l-emerald-500'
+        case 'summer':
+          return 'bg-amber-50/90 border-l-2 border-l-amber-500'
+        case 'fall':
+          return 'bg-orange-50/90 border-l-2 border-l-orange-500'
+        case 'winter':
+          return 'bg-sky-50/90 border-l-2 border-l-sky-500'
+        case 'rainy':
+          return 'bg-slate-50/90 border-l-2 border-l-slate-500'
+        default:
+          return 'bg-gray-100/90 border-l-2 border-l-blue-500'
+      }
+    } else {
+      return selectedClasses
+    }
+  }
+
   return (
     <div className="relative">
       <button
@@ -120,8 +164,10 @@ export default function ThemeSelector() {
                         setTheme(themeName)
                         setIsOpen(false)
                       }}
-                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${hoverClasses} ${
-                        currentTheme === themeName ? selectedClasses : ''
+                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
+                        currentTheme === themeName 
+                          ? getSelectedThemeOptionClasses(themeName) 
+                          : getThemeOptionClasses(themeName)
                       }`}
                     >
                       <span className="text-lg">{themes[themeName].emoji}</span>

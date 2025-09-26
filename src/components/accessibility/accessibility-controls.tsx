@@ -17,6 +17,7 @@ import {
   ZoomOut
 } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
+import { useSettings } from '@/contexts/settings-context';
 
 interface AccessibilityControlsProps {
   isVisible?: boolean;
@@ -25,9 +26,18 @@ interface AccessibilityControlsProps {
 
 export function AccessibilityControls({ isVisible = false, onToggle }: AccessibilityControlsProps) {
   const { theme, toggleMode } = useTheme();
+  const { 
+    fontSize: contextFontSize, 
+    setFontSize: setContextFontSize,
+    highContrastMode, 
+    setHighContrastMode,
+    reducedMotion, 
+    setReducedMotion,
+    colorScheme,
+    setColorScheme
+  } = useSettings();
+  
   const [fontSize, setFontSize] = useState(16);
-  const [highContrast, setHighContrast] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [colorBlindMode, setColorBlindMode] = useState<'none' | 'protanopia' | 'deuteranopia' | 'tritanopia'>('none');
 
@@ -37,8 +47,6 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
     if (savedPrefs) {
       const prefs = JSON.parse(savedPrefs);
       setFontSize(prefs.fontSize || 16);
-      setHighContrast(prefs.highContrast || false);
-      setReducedMotion(prefs.reducedMotion || false);
       setFocusMode(prefs.focusMode || false);
       setColorBlindMode(prefs.colorBlindMode || 'none');
     }
@@ -47,14 +55,14 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
     setReducedMotion(prefersReducedMotion.matches);
 
     const prefersHighContrast = window.matchMedia('(prefers-contrast: high)');
-    setHighContrast(prefersHighContrast.matches);
-  }, []);
+    setHighContrastMode(prefersHighContrast.matches);
+  }, [setReducedMotion, setHighContrastMode]);
 
   // Save preferences whenever they change
   useEffect(() => {
     const preferences = {
       fontSize,
-      highContrast,
+      highContrast: highContrastMode,
       reducedMotion,
       focusMode,
       colorBlindMode
@@ -62,15 +70,33 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
     localStorage.setItem('accessibility-preferences', JSON.stringify(preferences));
     
     document.documentElement.style.fontSize = `${fontSize}px`;
-    document.documentElement.classList.toggle('high-contrast', highContrast);
+    document.documentElement.classList.toggle('high-contrast', highContrastMode);
     document.documentElement.classList.toggle('reduced-motion', reducedMotion);
     document.documentElement.classList.toggle('focus-mode', focusMode);
     document.documentElement.setAttribute('data-colorblind-mode', colorBlindMode);
-  }, [fontSize, highContrast, reducedMotion, focusMode, colorBlindMode]);
+  }, [fontSize, highContrastMode, reducedMotion, focusMode, colorBlindMode]);
+
+  // Update font size when settings context changes
+  useEffect(() => {
+    const sizeMap = {
+      'small': 14,
+      'medium': 16,
+      'large': 18
+    };
+    setFontSize(sizeMap[contextFontSize]);
+  }, [contextFontSize]);
 
   const adjustFontSize = (increment: number) => {
     const newSize = Math.max(12, Math.min(24, fontSize + increment));
     setFontSize(newSize);
+    // Map the numeric font size to the settings context values
+    if (newSize <= 14) {
+      setContextFontSize('small');
+    } else if (newSize >= 18) {
+      setContextFontSize('large');
+    } else {
+      setContextFontSize('medium');
+    }
   };
 
   if (!isVisible) {
@@ -82,8 +108,8 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
             ? 'bg-white border-gray-200 text-gray-700 hover:shadow-xl'
             : 'bg-gray-800 border-gray-600 text-white hover:bg-gray-700'
         }`}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={reducedMotion ? {} : { scale: 1.05 }}
+        whileTap={reducedMotion ? {} : { scale: 0.95 }}
         aria-label="Open accessibility controls"
       >
         <Settings className="w-5 h-5" />
@@ -93,8 +119,9 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
+      initial={reducedMotion ? undefined : { opacity: 0, scale: 0.9, y: 20 }}
+      animate={reducedMotion ? undefined : { opacity: 1, scale: 1, y: 0 }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.2 }}
       className={`fixed bottom-4 left-4 z-50 p-6 rounded-2xl shadow-2xl backdrop-blur-md border max-w-sm ${
         theme.mode === 'light'
           ? 'bg-white/95 border-gray-200 text-gray-900'
@@ -122,7 +149,7 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
         <label className={`block text-sm font-medium mb-3 ${
           theme.mode === 'light' ? 'text-gray-700' : 'text-gray-300'
         }`}>
-          Font Size: {fontSize}px
+          Font Size: {contextFontSize}
         </label>
         <div className="flex items-center gap-2">
           <button
@@ -136,7 +163,7 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
           >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <div className="flex-1 text-center text-sm">{fontSize}px</div>
+          <div className="flex-1 text-center text-sm">{contextFontSize}</div>
           <button
             onClick={() => adjustFontSize(2)}
             className={`p-2 rounded-lg transition-colors ${
@@ -160,20 +187,20 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
             <span className="text-sm">High Contrast</span>
           </div>
           <button
-            onClick={() => setHighContrast(!highContrast)}
+            onClick={() => setHighContrastMode(!highContrastMode)}
             className={`w-11 h-6 rounded-full transition-colors relative ${
-              highContrast
+              highContrastMode
                 ? 'bg-blue-500'
                 : theme.mode === 'light'
                 ? 'bg-gray-300'
                 : 'bg-gray-600'
             }`}
-            aria-label={`${highContrast ? 'Disable' : 'Enable'} high contrast`}
+            aria-label={`${highContrastMode ? 'Disable' : 'Enable'} high contrast`}
           >
             <motion.div
               className="w-5 h-5 bg-white rounded-full shadow-sm"
-              animate={{ x: highContrast ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              animate={reducedMotion ? { x: highContrastMode ? 22 : 2 } : { x: highContrastMode ? 22 : 2 }}
+              transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 30 }}
             />
           </button>
         </div>
@@ -182,8 +209,8 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <motion.div
-              animate={{ rotate: reducedMotion ? 0 : 360 }}
-              transition={{ duration: 2, repeat: reducedMotion ? 0 : Infinity }}
+              animate={reducedMotion ? { rotate: 0 } : { rotate: 360 }}
+              transition={reducedMotion ? { duration: 0 } : { duration: 2, repeat: Infinity }}
             >
               <Settings className="w-4 h-4" />
             </motion.div>
@@ -202,8 +229,8 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
           >
             <motion.div
               className="w-5 h-5 bg-white rounded-full shadow-sm"
-              animate={{ x: reducedMotion ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              animate={reducedMotion ? { x: reducedMotion ? 22 : 2 } : { x: reducedMotion ? 22 : 2 }}
+              transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 30 }}
             />
           </button>
         </div>
@@ -227,8 +254,8 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
           >
             <motion.div
               className="w-5 h-5 bg-white rounded-full shadow-sm"
-              animate={{ x: focusMode ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              animate={reducedMotion ? { x: focusMode ? 22 : 2 } : { x: focusMode ? 22 : 2 }}
+              transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 30 }}
             />
           </button>
         </div>
@@ -250,11 +277,33 @@ export function AccessibilityControls({ isVisible = false, onToggle }: Accessibi
           >
             <motion.div
               className="w-5 h-5 bg-white rounded-full shadow-sm"
-              animate={{ x: theme.mode === 'dark' ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              animate={reducedMotion ? { x: theme.mode === 'dark' ? 22 : 2 } : { x: theme.mode === 'dark' ? 22 : 2 }}
+              transition={reducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 30 }}
             />
           </button>
         </div>
+      </div>
+
+      {/* Color Scheme */}
+      <div className="mt-6">
+        <label className={`block text-sm font-medium mb-2 ${
+          theme.mode === 'light' ? 'text-gray-700' : 'text-gray-300'
+        }`}>
+          Color Scheme
+        </label>
+        <select
+          value={colorScheme}
+          onChange={(e) => setColorScheme(e.target.value as any)}
+          className={`w-full p-2 rounded-lg border text-sm ${
+            theme.mode === 'light'
+              ? 'bg-white border-gray-300 text-gray-900'
+              : 'bg-gray-800 border-gray-600 text-white'
+          }`}
+        >
+          <option value="default">Default</option>
+          <option value="high-contrast">High Contrast</option>
+          <option value="desaturated">Desaturated</option>
+        </select>
       </div>
 
       {/* Color Blind Support */}

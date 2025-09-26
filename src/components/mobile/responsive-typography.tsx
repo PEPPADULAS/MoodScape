@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSettings } from '@/contexts/settings-context'
 
 interface ResponsiveTypographyProps {
   children: React.ReactNode
@@ -8,29 +9,18 @@ interface ResponsiveTypographyProps {
 }
 
 export function ResponsiveTypography({ children, className = '' }: ResponsiveTypographyProps) {
+  const { fontSize: contextFontSize } = useSettings()
   const [fontSize, setFontSize] = useState('text-base')
-  const [userPreference, setUserPreference] = useState<'small' | 'medium' | 'large'>('medium')
 
   useEffect(() => {
-    // Load user preference from localStorage
-    const saved = localStorage.getItem('typography-preference')
-    if (saved && ['small', 'medium', 'large'].includes(saved)) {
-      setUserPreference(saved as 'small' | 'medium' | 'large')
-    }
-  }, [])
-
-  useEffect(() => {
-    // Apply font size based on preference
+    // Apply font size based on context
     const sizeMap = {
       small: 'text-sm',
       medium: 'text-base', 
       large: 'text-lg'
     }
-    setFontSize(sizeMap[userPreference])
-    
-    // Save preference
-    localStorage.setItem('typography-preference', userPreference)
-  }, [userPreference])
+    setFontSize(sizeMap[contextFontSize])
+  }, [contextFontSize])
 
   return (
     <div className={`${fontSize} ${className}`}>
@@ -41,18 +31,16 @@ export function ResponsiveTypography({ children, className = '' }: ResponsiveTyp
 
 // Typography controls component
 export function TypographyControls() {
-  const [userPreference, setUserPreference] = useState<'small' | 'medium' | 'large'>('medium')
+  const { fontSize: contextFontSize, setFontSize: setContextFontSize } = useSettings()
+  const [userPreference, setUserPreference] = useState<'small' | 'medium' | 'large'>(contextFontSize)
 
   useEffect(() => {
-    const saved = localStorage.getItem('typography-preference')
-    if (saved && ['small', 'medium', 'large'].includes(saved)) {
-      setUserPreference(saved as 'small' | 'medium' | 'large')
-    }
-  }, [])
+    setUserPreference(contextFontSize)
+  }, [contextFontSize])
 
   const handleChange = (size: 'small' | 'medium' | 'large') => {
     setUserPreference(size)
-    localStorage.setItem('typography-preference', size)
+    setContextFontSize(size)
     
     // Trigger a custom event to notify other components
     window.dispatchEvent(new CustomEvent('typography-change', { detail: size }))

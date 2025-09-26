@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Plus, LogOut, Search, Filter, Music2, Info, Bell, Home, Calendar, Palette } from 'lucide-react'
+import { Plus, LogOut, Search, Filter, Music2, Info, Bell, Home, Calendar, Palette, BookOpen } from 'lucide-react'
 import { SmoothNavigation } from '@/components/navigation/smooth-navigation'
 import { useTheme } from '@/contexts/theme-context'
+import { useSettings } from '@/contexts/settings-context'
 import ThemeSelector from '@/components/theme-selector'
 import ThoughtCard from '@/components/thought-card'
 import CreateThoughtModal from '@/components/create-thought-modal'
-import AnalyticsDashboard from '@/components/analytics-dashboard'
 import EnhancedSearchFilter from '@/components/enhanced-search-filter'
 import { LoadingWrapper, ThoughtCardSkeleton } from '@/components/loading/loading-wrapper'
 import { PageLoadingSpinner } from '@/components/loading/seasonal-loading'
@@ -25,8 +25,11 @@ import { ThemedInput, ThemedSelect } from '@/components/ui/themed-input'
 import { MobileEnhancements } from '@/components/mobile/mobile-enhancements'
 import { AccessibilityControls } from '@/components/accessibility/accessibility-controls'
 import { ThemedCalendar } from '@/components/charts/themed-calendar'
-import { ThemedClock } from '@/components/charts/themed-clock'
 import { DashboardThemeSection } from '@/components/theme/dashboard-theme-section'
+// Personalization components
+import { WeeklyWords } from '@/components/personalization/weekly-words'
+import { DailyQuote } from '@/components/personalization/daily-quote'
+import { WritingPrompt } from '@/components/personalization/writing-prompt'
 
 interface Thought {
   id: string
@@ -44,7 +47,18 @@ interface Thought {
 export default function Dashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, currentTheme, customGradient } = useTheme()
+  const { weeklyWordsEnabled, dailyQuotesEnabled } = useSettings()
+  
+  // Apply custom gradient if it exists
+  useEffect(() => {
+    if (customGradient) {
+      const root = document.documentElement
+      root.style.setProperty('background', customGradient)
+      document.body.style.background = customGradient
+    }
+  }, [customGradient])
+
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [filteredThoughts, setFilteredThoughts] = useState<Thought[]>([])
   const [loading, setLoading] = useState(true)
@@ -122,11 +136,6 @@ export default function Dashboard() {
         {/* Scroll Progress Indicator */}
         <ScrollProgressIndicator />
         
-        {/* Clock Widget */}
-        <div className="fixed right-4 top-4 z-40">
-          <ThemedClock style="digital" />
-        </div>
-        
         {/* Dynamic Background Layers */}
         <SeasonalGradientBackground />
         {/* <DynamicBackground intensity="medium" /> */}
@@ -159,20 +168,30 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Analytics Section */}
-        <div className="grid grid-cols-1 gap-8 mb-8">
-          <div>
-            {/* Analytics Dashboard */}
-            <ScrollTriggeredAnimation animation="fadeInUp" delay={0.2}>
-              <div className="grid grid-cols-1 gap-8 mb-0">
-                <div>
-                  <AnalyticsDashboard />
+        {/* Personalization Section */}
+        <ScrollTriggeredAnimation animation="fadeInUp" delay={0.2}>
+          <div className={`${theme.card} rounded-2xl p-6 mb-8 backdrop-blur-sm border`}>
+            <h3 className={`text-xl font-semibold ${theme.text} mb-4`}>Personalized For You</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Weekly Theme Words */}
+              {weeklyWordsEnabled && (
+                <div className="lg:col-span-1">
+                  <h4 className={`font-medium ${theme.text} mb-3`}>This Week's Themes</h4>
+                  <WeeklyWords />
                 </div>
-              </div>
-            </ScrollTriggeredAnimation>
+              )}
+              
+              {/* Daily Quote */}
+              {dailyQuotesEnabled && (
+                <div className={`${weeklyWordsEnabled ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+                  <h4 className={`font-medium ${theme.text} mb-3`}>Quote of the Day</h4>
+                  <DailyQuote />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-
+        </ScrollTriggeredAnimation>
+        
         {/* Custom Theme Section */}
         <ScrollTriggeredAnimation animation="fadeInUp" delay={0.4}>
           <div className="mb-8" data-theme-studio>
@@ -186,92 +205,80 @@ export default function Dashboard() {
           </div>
         </ScrollTriggeredAnimation>
         
-        {/* Enhanced Search & Filter */}
+        {/* Welcome Message */}
         <ScrollTriggeredAnimation animation="fadeInUp" delay={0.6}>
-          <div className="mb-8">
-            <EnhancedSearchFilter
-              thoughts={thoughts}
-              onFilteredThoughts={handleFilteredThoughts}
-            />
+          <div className={`${theme.card} rounded-2xl p-8 mb-8 backdrop-blur-sm border`}>
+            <div className="text-center">
+              <h2 className={`text-3xl font-bold mb-4 bg-gradient-to-r ${theme.primary} bg-clip-text text-transparent`}>
+                Welcome to Your MoodScape Dashboard
+              </h2>
+              <p className={`${theme.accent} text-lg mb-6 max-w-2xl mx-auto`}>
+                This is your personalized dashboard. For detailed analytics, thought management, 
+                and other journaling features, please visit the My Journal section.
+              </p>
+              <EnhancedButton
+                onClick={() => router.push('/journal')}
+                variant="primary"
+                size="lg"
+                className="flex items-center space-x-2 mx-auto"
+              >
+                <span>Go to My Journal</span>
+              </EnhancedButton>
+            </div>
           </div>
         </ScrollTriggeredAnimation>
 
-        {/* New Thought Button */}
-        <div className="flex justify-center mb-8">
-          <EnhancedButton
-            onClick={() => setIsCreateModalOpen(true)}
-            variant="primary"
-            size="lg"
-            className="flex items-center space-x-2 shadow-lg hover:shadow-xl transition-shadow"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create New Thought</span>
-          </EnhancedButton>
-        </div>
-
-        {/* Thoughts Grid */}
-        <LoadingWrapper
-          isLoading={loading}
-          loadingText="Gathering your thoughts..."
-          size="lg"
-        >
-          {filteredThoughts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <div className="text-6xl mb-4">{theme.emoji}</div>
-              <h3 className={`text-xl font-semibold ${theme.text} mb-2`}>
-                {thoughts.length === 0 ? 'Start Your Journey' : 'No thoughts found'}
-              </h3>
-              <p className={`${theme.accent} mb-6`}>
-                {thoughts.length === 0 
-                  ? 'Create your first thought to begin your seasonal journal.'
-                  : 'Try adjusting your search or filters to find what you\'re looking for.'}
-              </p>
-              {thoughts.length === 0 && (
-                <EnhancedButton
-                  onClick={() => setIsCreateModalOpen(true)}
-                  variant="primary"
-                  size="lg"
-                >
-                  Create Your First Thought
-                </EnhancedButton>
-              )}
-            </motion.div>
-          ) : (
-            <ScrollTriggeredAnimation animation="fadeInUp" delay={0.4}>
-              <StaggeredAnimation staggerDelay={0.1}>
-                <div className="grid grid-cols-1 gap-6">
-                  {filteredThoughts.map((thought, index) => (
-                    <motion.div 
-                      key={thought.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <ThoughtCard
-                        thought={thought}
-                        onDelete={handleThoughtDeleted}
-                        onUpdate={handleThoughtUpdated}
-                      />
-                    </motion.div>
-                  ))}
+        {/* Quick Actions */}
+        <ScrollTriggeredAnimation animation="fadeInUp" delay={0.8}>
+          <div className={`${theme.card} rounded-2xl p-6 mb-8 backdrop-blur-sm border`}>
+            <h3 className={`text-xl font-semibold ${theme.text} mb-4`}>Quick Actions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <motion.div 
+                className={`${theme.card} rounded-xl p-4 cursor-pointer transition-all duration-300 hover:scale-105 border`}
+                whileHover={{ y: -5 }}
+                onClick={() => router.push('/journal')}
+              >
+                <div className="flex items-center space-x-3">
+                  <BookOpen className={`w-6 h-6 ${theme.text}`} />
+                  <div>
+                    <h4 className={`font-medium ${theme.text}`}>My Journal</h4>
+                    <p className={`text-sm ${theme.accent}`}>Write and manage your thoughts</p>
+                  </div>
                 </div>
-              </StaggeredAnimation>
-            </ScrollTriggeredAnimation>
-          )}
-        </LoadingWrapper>
+              </motion.div>
+              
+              <motion.div 
+                className={`${theme.card} rounded-xl p-4 cursor-pointer transition-all duration-300 hover:scale-105 border`}
+                whileHover={{ y: -5 }}
+                onClick={() => router.push('/reminders')}
+              >
+                <div className="flex items-center space-x-3">
+                  <Bell className={`w-6 h-6 ${theme.text}`} />
+                  <div>
+                    <h4 className={`font-medium ${theme.text}`}>Reminders</h4>
+                    <p className={`text-sm ${theme.accent}`}>Manage your important dates</p>
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className={`${theme.card} rounded-xl p-4 cursor-pointer transition-all duration-300 hover:scale-105 border`}
+                whileHover={{ y: -5 }}
+                onClick={() => router.push('/music')}
+              >
+                <div className="flex items-center space-x-3">
+                  <Music2 className={`w-6 h-6 ${theme.text}`} />
+                  <div>
+                    <h4 className={`font-medium ${theme.text}`}>Music</h4>
+                    <p className={`text-sm ${theme.accent}`}>Listen to your favorite tracks</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </ScrollTriggeredAnimation>
       </main>
 
-      {/* Create Thought Modal */}
-      <CreateThoughtModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onThoughtCreated={handleThoughtCreated}
-      />
-      
       {/* Music System Components */}
       <MusicPlayer />
       <MusicVisualizer />

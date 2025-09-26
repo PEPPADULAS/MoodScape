@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { RefreshCw, Vibrate, Sun, Moon, Type, Contrast, Volume2 } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
+import { useSettings } from '@/contexts/settings-context';
 
 interface MobileEnhancementsProps {
   children: React.ReactNode;
@@ -21,10 +22,17 @@ export function MobileEnhancements({
   enableHapticFeedback = true
 }: MobileEnhancementsProps) {
   const { theme, toggleMode, themeMode } = useTheme();
+  const { 
+    fontSize: contextFontSize, 
+    setFontSize: setContextFontSize,
+    highContrastMode, 
+    setHighContrastMode,
+    reducedMotion, 
+    setReducedMotion
+  } = useSettings();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [highContrast, setHighContrast] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Pull-to-refresh motion values
@@ -70,7 +78,7 @@ export function MobileEnhancements({
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, [setReducedMotion]);
 
   // Handle pull-to-refresh
   const handlePullToRefresh = async () => {
@@ -126,15 +134,39 @@ export function MobileEnhancements({
     const newSize = Math.max(12, Math.min(24, fontSize + increment));
     setFontSize(newSize);
     document.documentElement.style.fontSize = `${newSize}px`;
+    // Map the numeric font size to the settings context values
+    if (newSize <= 14) {
+      setContextFontSize('small');
+    } else if (newSize >= 18) {
+      setContextFontSize('large');
+    } else {
+      setContextFontSize('medium');
+    }
     triggerHaptic('light');
   };
+
+  // Sync font size with settings context
+  useEffect(() => {
+    const sizeMap = {
+      'small': 14,
+      'medium': 16,
+      'large': 18
+    };
+    setFontSize(sizeMap[contextFontSize]);
+  }, [contextFontSize]);
 
   // Toggle high contrast
   const toggleHighContrast = () => {
     setHighContrast(!highContrast);
+    setHighContrastMode(!highContrastMode);
     document.documentElement.classList.toggle('high-contrast', !highContrast);
     triggerHaptic('medium');
   };
+
+  // Sync high contrast state with settings context
+  useEffect(() => {
+    setHighContrast(highContrastMode);
+  }, [highContrastMode]);
 
   // Auto theme toggle
   const toggleAutoTheme = () => {
@@ -267,7 +299,7 @@ export function MobileEnhancements({
         onPanEnd={handlePanEnd}
         className={`min-h-screen ${
           reducedMotion ? '[&_*]:!transition-none [&_*]:!animation-none' : ''
-        } ${highContrast ? 'high-contrast' : ''}`}
+        } ${highContrastMode ? 'high-contrast' : ''}`}
       >
         {children}
       </motion.div>

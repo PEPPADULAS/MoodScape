@@ -84,6 +84,11 @@ export function DashboardThemeSection() {
     
     // Update theme context to persist across page navigation
     setCustomGradient(gradientCss)
+    
+    // Also apply directly to DOM to ensure immediate effect
+    const root = document.documentElement
+    root.style.setProperty('background', gradientCss)
+    document.body.style.background = gradientCss
   }
 
   const deleteCustomTheme = async (id: string) => {
@@ -184,12 +189,14 @@ export function DashboardThemeSection() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ delay: index * 0.1 }}
                 className={`relative group rounded-lg overflow-hidden ${
-                  theme.mode === 'light' ? 'bg-white border border-gray-200' : 'bg-white/5'
+                  theme.mode === 'light' 
+                    ? 'bg-white border border-gray-200 shadow-sm hover:shadow-md' 
+                    : 'bg-white/5'
                 }`}
               >
                 {/* Gradient Preview */}
                 <div
-                  className="h-24 w-full"
+                  className="h-24 w-full rounded-t-lg"
                   style={{ background: generateGradientCSS(item.gradient) }}
                 />
                 
@@ -208,7 +215,7 @@ export function DashboardThemeSection() {
                       onClick={() => applyGradientTheme(item.gradient)}
                       className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-all duration-200 ${
                         theme.mode === 'light'
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                           : 'bg-blue-500/40 hover:bg-blue-500/60 text-blue-200'
                       }`}
                       whileHover={{ scale: 1.05 }}
@@ -221,7 +228,7 @@ export function DashboardThemeSection() {
                       onClick={() => deleteCustomTheme(item.id)}
                       className={`px-3 py-2 rounded text-xs font-medium transition-all duration-200 ${
                         theme.mode === 'light'
-                          ? 'bg-red-100 hover:bg-red-200 text-red-700'
+                          ? 'bg-red-100 hover:bg-red-200 text-red-700 shadow-sm'
                           : 'bg-red-500/20 hover:bg-red-500/40 text-red-300'
                       }`}
                       whileHover={{ scale: 1.05 }}

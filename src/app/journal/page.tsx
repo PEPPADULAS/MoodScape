@@ -20,6 +20,9 @@ import {
 } from 'lucide-react'
 import { SmoothNavigation } from '@/components/navigation/smooth-navigation'
 import { useTheme } from '@/contexts/theme-context'
+import { useSettings } from '@/contexts/settings-context'
+// Personalization components
+import { WritingPrompt } from '@/components/personalization/writing-prompt'
 import ThemeSelector from '@/components/theme-selector'
 import ThoughtCard from '@/components/thought-card'
 import CreateThoughtModal from '@/components/create-thought-modal'
@@ -33,7 +36,6 @@ import { DynamicBackground, SeasonalGradientBackground, ConstellationEffect } fr
 import { ThemedInput, ThemedTextarea } from '@/components/ui/themed-input'
 import { MobileEnhancements } from '@/components/mobile/mobile-enhancements'
 import { ThemedCalendar } from '@/components/charts/themed-calendar'
-import { ThemedClock } from '@/components/charts/themed-clock'
 
 interface Thought {
   id: string
@@ -51,7 +53,18 @@ interface Thought {
 export default function JournalPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, currentTheme, customGradient } = useTheme()
+  const { writingPromptsEnabled } = useSettings()
+  
+  // Apply custom gradient if it exists
+  useEffect(() => {
+    if (customGradient) {
+      const root = document.documentElement
+      root.style.setProperty('background', customGradient)
+      document.body.style.background = customGradient
+    }
+  }, [customGradient])
+
   const [thoughts, setThoughts] = useState<Thought[]>([])
   const [filteredThoughts, setFilteredThoughts] = useState<Thought[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,11 +182,6 @@ export default function JournalPage() {
           {/* Scroll Progress Indicator */}
           <ScrollProgressIndicator />
           
-          {/* Clock Widget */}
-          <div className="fixed right-4 top-4 z-40">
-            <ThemedClock style="digital" />
-          </div>
-          
           {/* Dynamic Background Layers */}
           <SeasonalGradientBackground />
           <ConstellationEffect />
@@ -211,7 +219,7 @@ export default function JournalPage() {
             <ScrollTriggeredAnimation animation="fadeInUp" delay={0.1}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <motion.div
-                  className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm`}
+                  className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm border`}
                   whileHover={{ scale: 1.02, y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
@@ -225,7 +233,7 @@ export default function JournalPage() {
                 </motion.div>
 
                 <motion.div
-                  className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm`}
+                  className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm border`}
                   whileHover={{ scale: 1.02, y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
@@ -239,7 +247,7 @@ export default function JournalPage() {
                 </motion.div>
 
                 <motion.div
-                  className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm`}
+                  className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm border`}
                   whileHover={{ scale: 1.02, y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
@@ -257,7 +265,7 @@ export default function JournalPage() {
             {/* Tab Navigation */}
             <ScrollTriggeredAnimation animation="fadeInUp" delay={0.2}>
               <div className="flex justify-center mb-8">
-                <div className={`${theme.card} rounded-xl p-2 shadow-lg backdrop-blur-sm`}>
+                <div className={`${theme.card} rounded-xl p-2 shadow-lg backdrop-blur-sm border`}>
                   <div className="flex space-x-2">
                     {[
                       { id: 'write', label: 'Write', icon: PenTool },
@@ -270,7 +278,7 @@ export default function JournalPage() {
                         className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all ${
                           activeTab === tab.id
                             ? `${theme.button} text-white shadow-lg`
-                            : `${theme.text} hover:bg-gray-100`
+                            : `${theme.text} hover:bg-gray-100 dark:hover:bg-gray-700`
                         }`}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -294,9 +302,18 @@ export default function JournalPage() {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
+                  {/* Personalized Writing Prompt */}
+                  {writingPromptsEnabled && (
+                    <ScrollTriggeredAnimation animation="fadeInUp" delay={0.3}>
+                      <div className="mb-8">
+                        <WritingPrompt userEntries={thoughts} />
+                      </div>
+                    </ScrollTriggeredAnimation>
+                  )}
+                  
                   {/* Quick Write Section */}
-                  <ScrollTriggeredAnimation animation="fadeInUp" delay={0.3}>
-                    <div className={`${theme.card} rounded-xl p-8 shadow-lg backdrop-blur-sm mb-8`}>
+                  <ScrollTriggeredAnimation animation="fadeInUp" delay={0.4}>
+                    <div className={`${theme.card} rounded-xl p-8 shadow-lg backdrop-blur-sm border`}>
                       <div className="text-center mb-6">
                         <motion.div
                           className="text-6xl mb-4"
@@ -369,8 +386,8 @@ export default function JournalPage() {
 
                   {/* Recent Thoughts Preview */}
                   {thoughts.length > 0 && (
-                    <ScrollTriggeredAnimation animation="fadeInUp" delay={0.4}>
-                      <div className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm`}>
+                    <ScrollTriggeredAnimation animation="fadeInUp" delay={0.5}>
+                      <div className={`${theme.card} rounded-xl p-6 shadow-lg backdrop-blur-sm border`}>
                         <h3 className={`text-lg font-semibold ${theme.text} mb-4 flex items-center`}>
                           <Clock className="w-5 h-5 mr-2" />
                           Recent Thoughts

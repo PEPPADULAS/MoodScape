@@ -1,0 +1,64 @@
+{
+  "themes": [
+    {
+      "week": 1,
+      "words": ["Mindfulness", "Presence", "Awareness"],
+      "category": "mindfulness"
+    },
+    {
+      "week": 2,
+      "words": ["Growth", "Progress", "Development"],
+      "category": "growth"
+    },
+    {
+      "week": 3,
+      "words": ["Creativity", "Imagination", "Innovation"],
+      "category": "creativity"
+    },
+    {
+      "week": 4,
+      "words": ["Balance", "Harmony", "Equilibrium"],
+      "category": "balance"
+    },
+    {
+      "week": 5,
+      "words": ["Resilience", "Strength", "Perseverance"],
+      "category": "resilience"
+    },
+    {
+      "week": 6,
+      "words": ["Gratitude", "Appreciation", "Thankfulness"],
+      "category": "gratitude"
+    },
+    {
+      "week": 7,
+      "words": ["Compassion", "Kindness", "Empathy"],
+      "category": "compassion"
+    },
+    {
+      "week": 8,
+      "words": ["Curiosity", "Exploration", "Discovery"],
+      "category": "curiosity"
+    },
+    {
+      "week": 9,
+      "words": ["Joy", "Happiness", "Delight"],
+      "category": "joy"
+    },
+    {
+      "week": 10,
+      "words": ["Reflection", "Contemplation", "Insight"],
+      "category": "reflection"
+    },
+    {
+      "week": 11,
+      "words": ["Courage", "Bravery", "Boldness"],
+      "category": "courage"
+    },
+    {
+      "week": 12,
+      "words": ["Serenity", "Peace", "Tranquility"],
+      "category": "serenity"
+    }
+  ]
+}

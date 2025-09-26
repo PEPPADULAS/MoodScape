@@ -36,6 +36,7 @@ export default function SignUp() {
     }
 
     try {
+      console.log('Attempting to register user:', { name, email, password }) // Debug log
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -44,13 +45,16 @@ export default function SignUp() {
         body: JSON.stringify({ name, email, password }),
       })
 
+      console.log('Register response status:', response.status) // Debug log
       if (response.ok) {
         router.push('/auth/signin?message=Account created successfully')
       } else {
         const data = await response.json()
+        console.error('Register error:', data) // Debug log
         setError(data.error || 'Something went wrong')
       }
     } catch (error) {
+      console.error('Register error:', error) // Debug log
       setError('Something went wrong')
     } finally {
       setLoading(false)

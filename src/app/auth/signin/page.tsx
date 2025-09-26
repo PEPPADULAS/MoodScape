@@ -22,18 +22,25 @@ export default function SignIn() {
     setError('')
 
     try {
+      console.log('Attempting to sign in with:', { email, password }) // Debug log
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       })
+      
+      console.log('Sign in result:', result) // Debug log
 
       if (result?.error) {
         setError('Invalid credentials')
       } else {
+        // Get the session to verify it's working
+        const session = await getSession()
+        console.log('Session after sign in:', session) // Debug log
         router.push('/dashboard')
       }
     } catch (error) {
+      console.error('Sign in error:', error) // Debug log
       setError('Something went wrong')
     } finally {
       setLoading(false)

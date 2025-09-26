@@ -47,7 +47,12 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    secret: process.env.NEXTAUTH_SECRET,
   },
   pages: {
     signIn: '/auth/signin',
@@ -55,15 +60,32 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // Only store essential information in the token
         token.id = user.id
+        // Remove any additional user data that might bloat the token
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
+        // Only add essential data to the session
         (session.user as any).id = token.id as string
+        // Avoid adding large objects or unnecessary data
       }
       return session
+    }
+  },
+  // Reduce cookie size to prevent 431 errors
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      }
     }
   }
 }
