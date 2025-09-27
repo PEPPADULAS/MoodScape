@@ -233,7 +233,7 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
               {/* Content */}
               <div className="mb-4">
                 <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                  What's on your mind? *
+                  What&apos;s on your mind? *
                 </label>
                 <ThemedTextarea
                   value={content}
@@ -267,7 +267,7 @@ export default function CreateThoughtModal({ isOpen, onClose, onThoughtCreated }
 
                 <div>
                   <label className={`block text-sm font-medium ${theme.text} mb-2`}>
-                    What's the weather like?
+                    What&apos;s the weather like?
                   </label>
                   <ThemedSelect
                     value={weather}

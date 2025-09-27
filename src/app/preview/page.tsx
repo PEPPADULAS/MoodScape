@@ -17,11 +17,9 @@ export default function PreviewPage() {
   }, [])
 
   const features = [
-    { name: 'Journal', path: '/journal', description: 'Write and manage your thoughts' },
     { name: 'Dashboard', path: '/dashboard', description: 'View your mood analytics and insights' },
     { name: 'Reminders', path: '/reminders', description: 'Set and manage reminders' },
     { name: 'Music', path: '/music', description: 'Listen to mood-based music' },
-    { name: 'Profile', path: '/profile', description: 'Manage your account and preferences' },
     { name: 'Settings', path: '/settings', description: 'Customize your experience' },
   ]
 

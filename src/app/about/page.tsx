@@ -202,7 +202,7 @@ export default function AboutPage() {
                 <h2 className={`text-2xl font-bold ${theme.text} mb-4`}>Our Mission</h2>
                 <p className={`${theme.accent} text-lg leading-relaxed`}>
                   We believe that everyone deserves a beautiful, private space to explore their thoughts and emotions. 
-                  MoodScape combines cutting-edge technology with thoughtful design to create an experience that's 
+                  MoodScape combines cutting-edge technology with thoughtful design to create an experience that&apos;s 
                   both functional and inspiring—helping you understand yourself better through the seasons of life. 
                   With smart reminders, customizable themes, and seamless navigation, your journaling experience 
                   adapts to your unique style and needs.
@@ -322,7 +322,7 @@ export default function AboutPage() {
               <div className="text-center">
                 <Zap className={`w-12 h-12 ${theme.text} mx-auto mb-4`} />
                 <h3 className={`text-xl font-semibold ${theme.text} mb-2`}>Continuous Innovation</h3>
-                <p className={`${theme.accent} text-sm`}>We're constantly improving and adding new features based on user feedback and emerging technologies.</p>
+                <p className={`${theme.accent} text-sm`}>We&apos;re constantly improving and adding new features based on user feedback and emerging technologies.</p>
               </div>
             </div>
           </ScrollTriggeredAnimation>

@@ -17,8 +17,7 @@ import {
   Clock,
   ArrowLeft,
   ArrowRight as ArrowRightIcon,
-  Settings,
-  User
+  Settings
 } from 'lucide-react'
 import { ThemedClock } from '@/components/charts/themed-clock'
 
@@ -31,13 +30,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  {
-    id: 'profile',
-    label: 'My Profile',
-    path: '/profile',
-    icon: User,
-    color: 'purple'
-  },
   {
     id: 'journal',
     label: 'My Journal',

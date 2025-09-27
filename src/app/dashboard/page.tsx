@@ -69,13 +69,16 @@ export default function Dashboard() {
   useKeyboardShortcuts();
 
   useEffect(() => {
+    console.log('Dashboard: Status changed to', status)
     if (status === 'unauthenticated') {
+      console.log('Dashboard: Redirecting to sign in')
       router.push('/auth/signin')
     }
   }, [status, router])
 
   useEffect(() => {
     if (session) {
+      console.log('Dashboard: Session available', session)
       fetchThoughts()
     }
   }, [session])
@@ -116,13 +119,22 @@ export default function Dashboard() {
     setFilteredThoughts(filtered)
   }
 
-  if (status === 'loading' || !session) {
+  if (status === 'loading') {
+    console.log('Dashboard: Session is loading...')
     return (
       <div className={`min-h-screen ${theme.background} flex items-center justify-center`}>
         <PageLoadingSpinner />
       </div>
     )
   }
+
+  // Only render content if we have a session
+  if (!session) {
+    console.log('Dashboard: No session, returning null')
+    return null; // Let the useEffect handle the redirect
+  }
+
+  console.log('Dashboard: Rendering content with session', session)
 
   return (
     <MobileEnhancements
@@ -132,7 +144,7 @@ export default function Dashboard() {
       enableHapticFeedback={true}
     >
       <PageTransition>
-      <div className={`min-h-screen ${theme.background} relative`}>
+        <div className={`min-h-screen ${theme.background} relative`}>
         {/* Scroll Progress Indicator */}
         <ScrollProgressIndicator />
         
@@ -291,7 +303,7 @@ export default function Dashboard() {
         onToggle={() => setShowAccessibilityControls(!showAccessibilityControls)}
       />
     </div>
-    </PageTransition>
-    </MobileEnhancements>
+  </PageTransition>
+</MobileEnhancements>
   )
 }

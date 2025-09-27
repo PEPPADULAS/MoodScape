@@ -407,7 +407,7 @@ export default function EnhancedSearchFilter({
       >
         Found {filteredAndSortedThoughts.length} of {thoughts.length} thoughts
         {filters.searchTerm && (
-          <span> matching "{filters.searchTerm}"</span>
+          <span> matching &quot;{filters.searchTerm}&quot;</span>
         )}
       </motion.div>
     </motion.div>

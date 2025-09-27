@@ -62,14 +62,22 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         // Only store essential information in the token
         token.id = user.id
+        token.email = user.email
+        token.name = user.name
+        console.log('JWT token created for user:', user.id)
         // Remove any additional user data that might bloat the token
       }
+      console.log('JWT token processed:', token)
       return token
     },
     async session({ session, token }) {
+      console.log('Session callback called with token:', token)
       if (token && session.user) {
         // Only add essential data to the session
         (session.user as any).id = token.id as string
+        session.user.email = token.email as string
+        session.user.name = token.name as string
+        console.log('Session created:', session)
         // Avoid adding large objects or unnecessary data
       }
       return session

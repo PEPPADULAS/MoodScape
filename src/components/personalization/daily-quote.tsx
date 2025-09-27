@@ -79,7 +79,7 @@ export function DailyQuote({ className = '', mood }: DailyQuoteProps) {
       <div className="flex items-start gap-3">
         <QuoteIcon className={getQuoteIconClasses()} />
         <div>
-          <p className={getTextClasses()}>"{currentQuote.text}"</p>
+          <p className={getTextClasses()}>&quot;{currentQuote.text}&quot;</p>
           <p className={getAuthorClasses()}>— {currentQuote.author}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className={getCategoryClasses()}>

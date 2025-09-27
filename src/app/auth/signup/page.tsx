@@ -36,7 +36,6 @@ export default function SignUp() {
     }
 
     try {
-      console.log('Attempting to register user:', { name, email, password }) // Debug log
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -45,17 +44,26 @@ export default function SignUp() {
         body: JSON.stringify({ name, email, password }),
       })
 
-      console.log('Register response status:', response.status) // Debug log
+      console.log('Register response status:', response.status)
+      console.log('Register response headers:', Object.fromEntries(response.headers.entries()))
+
       if (response.ok) {
         router.push('/auth/signin?message=Account created successfully')
       } else {
-        const data = await response.json()
-        console.error('Register error:', data) // Debug log
-        setError(data.error || 'Something went wrong')
+        let errorMessage = 'Something went wrong'
+        try {
+          const data = await response.json()
+          console.error('Register error data:', data)
+          errorMessage = data.error || errorMessage
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError)
+          errorMessage = `HTTP ${response.status}: Registration failed`
+        }
+        setError(errorMessage)
       }
     } catch (error) {
-      console.error('Register error:', error) // Debug log
-      setError('Something went wrong')
+      console.error('Register error:', error)
+      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -69,6 +77,13 @@ export default function SignUp() {
         className={`rounded-2xl shadow-xl p-8 w-full max-w-md ${theme.card}`}
       >
         <div className="text-center mb-8">
+          <motion.div 
+            className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <span className="text-2xl">✨</span>
+          </motion.div>
           <h1 className={`text-3xl font-bold ${theme.text} mb-2`}>Create Account</h1>
           <p className={theme.accent}>Start your MoodScape journey</p>
         </div>
@@ -83,7 +98,8 @@ export default function SignUp() {
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+              placeholder="Your name"
               required
             />
           </div>
@@ -97,7 +113,8 @@ export default function SignUp() {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+              className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+              placeholder="your@email.com"
               required
             />
           </div>
@@ -112,16 +129,16 @@ export default function SignUp() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 rounded-lg border focus:ring-2 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-4 py-3 pr-12 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+                placeholder="••••••••"
                 required
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute inset-y-0 right-3 my-auto text-gray-600 hover:text-gray-800 text-sm"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 my-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
           </div>
@@ -136,30 +153,43 @@ export default function SignUp() {
                 id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 rounded-lg border focus:ring-2 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-4 py-3 pr-12 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+                placeholder="••••••••"
                 required
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword((v) => !v)}
-                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                className="absolute inset-y-0 right-3 my-auto text-gray-600 hover:text-gray-800 text-sm"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-3 my-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                {showConfirmPassword ? 'Hide' : 'Show'}
+                {showConfirmPassword ? '🙈' : '👁️'}
               </button>
             </div>
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-red-500 text-sm text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg"
+            >
+              {error}
+            </motion.div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className={`w-full ${theme.button} text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50`}
+            className={`w-full ${theme.button} text-white font-medium py-3 rounded-lg transition-all duration-200 disabled:opacity-50`}
           >
-            {loading ? 'Creating account...' : 'Sign Up'}
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Creating account...
+              </div>
+            ) : (
+              'Sign Up'
+            )}
           </button>
         </form>
 
@@ -170,6 +200,12 @@ export default function SignUp() {
               Sign in
             </Link>
           </p>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
+          <Link href="/" className={`text-sm ${theme.accent} hover:underline`}>
+            ← Back to home
+          </Link>
         </div>
       </motion.div>
     </div>
