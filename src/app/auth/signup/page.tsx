@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { Sun, Moon } from 'lucide-react'
 import { useTheme } from '@/contexts/theme-context'
 
 export default function SignUp() {
@@ -16,7 +17,7 @@ export default function SignUp() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, themeMode, toggleMode } = useTheme()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,6 +77,20 @@ export default function SignUp() {
         animate={{ opacity: 1, y: 0 }}
         className={`rounded-2xl shadow-xl p-8 w-full max-w-md ${theme.card}`}
       >
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={toggleMode}
+            className={`p-2 rounded-full ${
+              themeMode === 'light' 
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+            } transition-colors duration-200`}
+            aria-label="Toggle theme"
+          >
+            {themeMode === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+        </div>
+        
         <div className="text-center mb-8">
           <motion.div 
             className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4"

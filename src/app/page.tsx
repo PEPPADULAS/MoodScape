@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
-import { Sparkles, BookOpen, Music, Calendar, Palette, Brain, Heart, Star } from 'lucide-react'
+import { Sparkles, BookOpen, Music, Calendar, Palette, Brain, Heart, Star, CloudRain } from 'lucide-react'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -34,7 +34,7 @@ export default function Home() {
       icon: <Star className="w-6 h-6" />
     },
     { 
-      id: 'autumn', 
+      id: 'fall', 
       name: 'Autumn Glow', 
       description: 'Warm and reflective',
       gradient: 'from-orange-500 to-red-600',
@@ -46,6 +46,13 @@ export default function Home() {
       description: 'Calm and introspective',
       gradient: 'from-blue-300 to-purple-500',
       icon: <Sparkles className="w-6 h-6" />
+    },
+    {
+      id: 'rainy',
+      name: 'Rainy Day',
+      description: 'Cozy and contemplative',
+      gradient: 'from-slate-400 to-blue-600',
+      icon: <CloudRain className="w-6 h-6" />
     }
   ]
 
