@@ -19,9 +19,18 @@ import { ScrollTriggeredAnimation } from '@/components/animations/parallax-conta
 export default function MusicPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, customGradient } = useTheme();
   const music = useMusic();
   const [activeTab, setActiveTab] = useState<'playlists' | 'library' | 'recent'>('playlists');
+
+  // Apply custom gradient if it exists
+  useEffect(() => {
+    if (customGradient) {
+      const root = document.documentElement;
+      root.style.setProperty('background', customGradient);
+      document.body.style.background = customGradient;
+    }
+  }, [customGradient]);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();

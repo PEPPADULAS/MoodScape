@@ -34,11 +34,21 @@ import { useSession, signOut } from 'next-auth/react'
 import { PageTransition, TextReveal, EnhancedButton } from '@/components/animations/micro-interactions'
 import { ParallaxContainer, ScrollTriggeredAnimation, StaggeredAnimation } from '@/components/animations/parallax-container'
 import { DynamicBackground, SeasonalGradientBackground, ConstellationEffect } from '@/components/backgrounds/dynamic-background'
+import { useEffect } from 'react'
 
 export default function AboutPage() {
-  const { theme } = useTheme()
+  const { theme, customGradient } = useTheme()
   const router = useRouter()
   const { data: session } = useSession()
+  
+  // Apply custom gradient if it exists
+  useEffect(() => {
+    if (customGradient) {
+      const root = document.documentElement;
+      root.style.setProperty('background', customGradient);
+      document.body.style.background = customGradient;
+    }
+  }, [customGradient])
 
   const features = [
     {

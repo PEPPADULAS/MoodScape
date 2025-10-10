@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { SmoothNavigation } from '@/components/navigation/smooth-navigation';
 import { useTheme } from '@/contexts/theme-context';
-import { useSettings } from '@/contexts/settings-context';
 
 import { PageLoadingSpinner } from '@/components/loading/seasonal-loading';
 import { PageTransition } from '@/components/animations/micro-interactions';
@@ -26,11 +25,12 @@ import ThemeSettings from '@/components/settings/theme-settings';
 import PersonalizationSettings from '@/components/settings/personalization-settings';
 import AccessibilitySettings from '@/components/settings/accessibility-settings';
 import KeyboardSettings from '@/components/settings/keyboard-settings';
+import { useSettings } from '@/contexts/settings-context';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, customGradient } = useTheme();
   const { 
     keyboardNavEnabled,
     weeklyWordsEnabled,
@@ -38,6 +38,15 @@ export default function SettingsPage() {
     writingPromptsEnabled
   } = useSettings();
   
+  // Apply custom gradient if it exists
+  useEffect(() => {
+    if (customGradient) {
+      const root = document.documentElement;
+      root.style.setProperty('background', customGradient);
+      document.body.style.background = customGradient;
+    }
+  }, [customGradient]);
+
   const [activeTab, setActiveTab] = useState<'theme' | 'personalization' | 'accessibility' | 'keyboard'>('theme');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
